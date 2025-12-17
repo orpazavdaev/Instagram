@@ -1,5 +1,3 @@
-'use client';
-
 import { Heart, ChevronRight } from 'lucide-react';
 import Avatar from '@/components/shared/Avatar';
 
@@ -105,12 +103,12 @@ export default function CommentsPage() {
         <p className="text-sm">
           {postInfo.text}{' '}
           <span className="text-gray-500">🌟</span>{' '}
-          <span className="text-instagram-blue">{postInfo.username}</span>
+          <span className="text-blue-500">{postInfo.username}</span>
         </p>
         <p className="text-sm">
           {postInfo.brandName}{' '}
           <span className="text-gray-500">✨🥂</span>{' '}
-          <span className="text-instagram-blue">{postInfo.mentionedUser}</span>
+          <span className="text-blue-500">{postInfo.mentionedUser}</span>
         </p>
         <button className="text-xs text-gray-400 mt-1">
           A week ago See translation

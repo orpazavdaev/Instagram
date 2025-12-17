@@ -1,5 +1,3 @@
-'use client';
-
 import Image from 'next/image';
 import Link from 'next/link';
 import { X, ChevronRight, Camera, Maximize2, Copy } from 'lucide-react';
@@ -30,7 +28,7 @@ export default function CreatePage() {
           <X className="w-6 h-6" />
         </Link>
         <span className="text-white font-semibold">New post</span>
-        <button className="text-instagram-blue font-semibold">
+        <button className="text-blue-500 font-semibold">
           Next
         </button>
       </div>

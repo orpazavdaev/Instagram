@@ -1,8 +1,6 @@
-'use client';
-
 import Image from 'next/image';
-import { X, MoreHorizontal, Volume2, Heart, Send, Music } from 'lucide-react';
 import Link from 'next/link';
+import { X, MoreHorizontal, Volume2, Heart, Send, Music } from 'lucide-react';
 import Avatar from '@/components/shared/Avatar';
 
 const storyData = {

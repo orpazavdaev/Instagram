@@ -49,7 +49,7 @@ export default function SettingsPage() {
       {/* Meta Accounts Center */}
       <div className="mx-4 mt-4 p-4 bg-gray-50 rounded-xl">
         <div className="flex items-center gap-2 mb-3">
-          <span className="text-instagram-blue font-semibold">∞ Meta</span>
+          <span className="text-blue-500 font-semibold">∞ Meta</span>
         </div>
         <h3 className="font-semibold mb-3">Accounts center</h3>
         
@@ -66,7 +66,7 @@ export default function SettingsPage() {
           ))}
         </div>
         
-        <button className="text-instagram-blue text-sm font-medium mt-4">
+        <button className="text-blue-500 text-sm font-medium mt-4">
           More In Account Center
         </button>
       </div>

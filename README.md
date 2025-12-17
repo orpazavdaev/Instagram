@@ -1,6 +1,6 @@
 # 📸 Instagram Clone
 
-A beautiful, mobile-first Instagram clone built with **Next.js 14**, **TypeScript**, and **Tailwind CSS**.
+A beautiful, mobile-first Instagram clone built with **Next.js 14 Pages Router**, **TypeScript**, and **Tailwind CSS**.
 
 ![Next.js](https://img.shields.io/badge/Next.js-14-black?style=flat-square&logo=next.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.4-blue?style=flat-square&logo=typescript)
@@ -17,13 +17,6 @@ A beautiful, mobile-first Instagram clone built with **Next.js 14**, **TypeScrip
 
 ## 🚀 Getting Started
 
-### Prerequisites
-
-- Node.js 18+
-- npm or yarn
-
-### Installation
-
 ```bash
 # Install dependencies
 npm install
@@ -38,38 +31,29 @@ Open [http://localhost:3000](http://localhost:3000) to view the app.
 
 ```
 src/
-├── app/
-│   ├── api/              # API Routes
-│   │   ├── users/
-│   │   └── posts/
-│   ├── profile/          # Profile page
-│   ├── comments/         # Comments page
-│   ├── settings/         # Settings page
-│   ├── story/            # Story viewer
-│   ├── reels/            # Reels/Explore
-│   └── create/           # Create post
-└── components/
-    ├── layout/           # BottomNav
-    ├── profile/          # Profile components
-    └── shared/           # Avatar, Button
+├── pages/
+│   ├── _app.tsx          # App wrapper
+│   ├── _document.tsx     # Document wrapper
+│   ├── index.tsx         # Home page
+│   ├── profile.tsx       # Profile page
+│   ├── comments.tsx      # Comments page
+│   ├── settings.tsx      # Settings page
+│   ├── story.tsx         # Story viewer
+│   ├── reels.tsx         # Reels/Explore
+│   ├── create.tsx        # Create post
+│   └── api/              # API Routes
+│       ├── index.ts
+│       ├── users/
+│       └── posts/
+├── components/
+│   ├── layout/           # BottomNav
+│   ├── profile/          # StoryHighlight, PostsGrid
+│   └── shared/           # Avatar, Button
+└── styles/
+    └── globals.css
 ```
 
-## 🎨 Design System
-
-### Colors (Light Theme)
-- Background: `#FFFFFF`
-- Border: `#DBDBDB`
-- Text: `#262626`
-- Muted: `#8E8E8E`
-- Accent: `#0095F6`
-
-### Bottom Navigation
-Dark pill-shaped navigation bar with icons for:
-- Home, Search, Create, Reels, Profile
-
 ## 📡 API Routes
-
-Ready-to-use API endpoints:
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -83,6 +67,7 @@ Ready-to-use API endpoints:
 
 | Page | Route | Description |
 |------|-------|-------------|
+| Home | `/` | Navigation menu |
 | Profile | `/profile` | User profile with highlights |
 | Comments | `/comments` | Post comments |
 | Settings | `/settings` | App settings |
