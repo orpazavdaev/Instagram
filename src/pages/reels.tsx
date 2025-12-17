@@ -17,15 +17,26 @@ const reelsData = [
   { id: 13, image: 'https://picsum.photos/seed/reel13/300/300' },
   { id: 14, image: 'https://picsum.photos/seed/reel14/300/300' },
   { id: 15, image: 'https://picsum.photos/seed/reel15/300/300' },
+  { id: 16, image: 'https://picsum.photos/seed/reel16/300/300' },
+  { id: 17, image: 'https://picsum.photos/seed/reel17/300/300' },
+  { id: 18, image: 'https://picsum.photos/seed/reel18/300/300' },
+  { id: 19, image: 'https://picsum.photos/seed/reel19/300/300' },
+  { id: 20, image: 'https://picsum.photos/seed/reel20/300/300' },
+  { id: 21, image: 'https://picsum.photos/seed/reel21/300/300' },
+  { id: 22, image: 'https://picsum.photos/seed/reel22/300/300' },
+  { id: 23, image: 'https://picsum.photos/seed/reel23/300/300' },
+  { id: 24, image: 'https://picsum.photos/seed/reel24/300/300' },
+  { id: 25, image: 'https://picsum.photos/seed/reel25/300/300' },
+  { id: 26, image: 'https://picsum.photos/seed/reel26/300/300' },
+  { id: 27, image: 'https://picsum.photos/seed/reel27/300/300' },
+  { id: 28, image: 'https://picsum.photos/seed/reel28/300/300' },
+  { id: 29, image: 'https://picsum.photos/seed/reel29/300/300' },
+  { id: 30, image: 'https://picsum.photos/seed/reel30/300/300' },
 ];
 
 export default function ReelsPage() {
   return (
-    <div className="bg-white min-h-screen">
-      {/* Header */}
-      <div className="px-4 py-3 border-b border-gray-200">
-        <span className="text-sm text-gray-400">Reels</span>
-      </div>
+    <div className="bg-white">
 
       {/* Search Bar */}
       <div className="px-4 py-3">

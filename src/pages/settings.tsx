@@ -35,10 +35,6 @@ const howOthersInteractItems = [
 export default function SettingsPage() {
   return (
     <div className="bg-white min-h-screen">
-      {/* Header */}
-      <div className="px-4 py-3 border-b border-gray-200">
-        <span className="text-sm text-gray-400">Settings</span>
-      </div>
 
       {/* Settings and Privacy Link */}
       <Link href="#" className="flex items-center justify-between px-4 py-4 border-b border-gray-100">

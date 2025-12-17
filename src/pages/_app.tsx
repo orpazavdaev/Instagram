@@ -12,8 +12,8 @@ export default function App({ Component, pageProps }: AppProps) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <div className="bg-white text-gray-900 min-h-screen pb-20">
-        <main className="max-w-[430px] mx-auto min-h-screen bg-white">
+      <div className="bg-white text-gray-900">
+        <main className="max-w-[430px] mx-auto bg-white">
           <Component {...pageProps} />
         </main>
         <BottomNav />

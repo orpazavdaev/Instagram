@@ -1,4 +1,5 @@
-import { Settings, Grid3X3, Film, UserSquare } from 'lucide-react';
+import Link from 'next/link';
+import { Settings, Grid3X3, UserSquare } from 'lucide-react';
 import Avatar from '@/components/shared/Avatar';
 import Button from '@/components/shared/Button';
 import StoryHighlight from '@/components/profile/StoryHighlight';
@@ -22,6 +23,9 @@ const highlights = [
   { id: 2, name: 'Food', image: 'https://picsum.photos/seed/food/150/150' },
   { id: 3, name: 'Life', image: 'https://picsum.photos/seed/life/150/150' },
   { id: 4, name: 'Sea', image: 'https://picsum.photos/seed/sea/150/150' },
+  { id: 5, name: 'Travel', image: 'https://picsum.photos/seed/travel/150/150' },
+  { id: 6, name: 'Friends', image: 'https://picsum.photos/seed/friends/150/150' },
+  { id: 7, name: 'Music', image: 'https://picsum.photos/seed/music/150/150' },
 ];
 
 const posts = [
@@ -40,11 +44,10 @@ export default function ProfilePage() {
   return (
     <div className="bg-white min-h-screen">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3">
-        <span className="text-sm text-gray-400">Profile page</span>
-        <button className="p-2">
+      <div className="flex items-center justify-end px-4 py-3">
+        <Link href="/settings" className="p-2">
           <Settings className="w-6 h-6 text-gray-700" />
-        </button>
+        </Link>
       </div>
 
       {/* Profile Info */}
@@ -92,9 +95,6 @@ export default function ProfilePage() {
       <div className="flex border-t border-gray-200">
         <button className="flex-1 py-3 flex justify-center border-b-2 border-gray-900">
           <Grid3X3 className="w-6 h-6" />
-        </button>
-        <button className="flex-1 py-3 flex justify-center text-gray-400">
-          <Film className="w-6 h-6" />
         </button>
         <button className="flex-1 py-3 flex justify-center text-gray-400">
           <UserSquare className="w-6 h-6" />
