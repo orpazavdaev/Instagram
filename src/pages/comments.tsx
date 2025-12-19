@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { ChevronLeft, Heart, Send } from 'lucide-react';
+import { ChevronLeft, Heart } from 'lucide-react';
 import Avatar from '@/components/shared/Avatar';
 import { useAuth } from '@/context/AuthContext';
 import { useApi } from '@/hooks/useApi';
@@ -10,17 +10,7 @@ interface Comment {
   id: string;
   text: string;
   createdAt: string;
-  user: {
-    id: string;
-    username: string;
-    avatar: string;
-  };
-}
-
-interface Post {
-  id: string;
-  caption: string;
-  createdAt: string;
+  likesCount: number;
   user: {
     id: string;
     username: string;
@@ -37,16 +27,32 @@ function getTimeAgo(date: string): string {
   return `${Math.floor(seconds / 86400)}d`;
 }
 
+// Skeleton Component
+function CommentSkeleton() {
+  return (
+    <div className="flex items-start gap-3 px-4 py-3 animate-pulse">
+      <div className="w-8 h-8 rounded-full bg-gray-200" />
+      <div className="flex-1">
+        <div className="w-48 h-4 bg-gray-200 rounded mb-2" />
+        <div className="w-24 h-3 bg-gray-200 rounded" />
+      </div>
+      <div className="w-4 h-4 bg-gray-200 rounded" />
+    </div>
+  );
+}
+
 export default function CommentsPage() {
   const router = useRouter();
   const { postId } = router.query;
   const { user } = useAuth();
-  const { get, post: apiPost, isLoading } = useApi();
+  const { get, post: apiPost } = useApi();
   
   const [comments, setComments] = useState<Comment[]>([]);
-  const [postData, setPostData] = useState<Post | null>(null);
   const [newComment, setNewComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [likedComments, setLikedComments] = useState<Set<string>>(new Set());
+  const [likeCounts, setLikeCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (postId) {
@@ -55,10 +61,16 @@ export default function CommentsPage() {
   }, [postId]);
 
   const loadComments = async () => {
+    setIsLoading(true);
     const data = await get<Comment[]>(`/api/posts/${postId}/comments`);
     if (data) {
       setComments(data);
+      // Initialize like counts
+      const counts: Record<string, number> = {};
+      data.forEach(c => { counts[c.id] = c.likesCount; });
+      setLikeCounts(counts);
     }
+    setIsLoading(false);
   };
 
   const handleSubmitComment = async (e: React.FormEvent) => {
@@ -80,6 +92,28 @@ export default function CommentsPage() {
     setIsSubmitting(false);
   };
 
+  const handleLikeComment = async (commentId: string) => {
+    const isCurrentlyLiked = likedComments.has(commentId);
+    
+    // Optimistic update
+    setLikedComments(prev => {
+      const newSet = new Set(prev);
+      if (isCurrentlyLiked) {
+        newSet.delete(commentId);
+      } else {
+        newSet.add(commentId);
+      }
+      return newSet;
+    });
+    
+    setLikeCounts(prev => ({
+      ...prev,
+      [commentId]: (prev[commentId] || 0) + (isCurrentlyLiked ? -1 : 1),
+    }));
+
+    await apiPost(`/api/comments/${commentId}/like`, {});
+  };
+
   return (
     <div className="bg-white min-h-screen flex flex-col">
       {/* Header */}
@@ -93,7 +127,13 @@ export default function CommentsPage() {
 
       {/* Comments List */}
       <div className="flex-1 overflow-y-auto pb-20">
-        {comments.length === 0 && !isLoading ? (
+        {isLoading ? (
+          <>
+            <CommentSkeleton />
+            <CommentSkeleton />
+            <CommentSkeleton />
+          </>
+        ) : comments.length === 0 ? (
           <div className="text-center text-gray-500 py-8">
             <p>No comments yet</p>
             <p className="text-sm">Be the first to comment!</p>
@@ -116,9 +156,21 @@ export default function CommentsPage() {
                   <button className="font-semibold">Reply</button>
                 </div>
               </div>
-              <button className="p-1">
-                <Heart className="w-4 h-4 text-gray-400" />
-              </button>
+              <div className="flex flex-col items-center">
+                <button 
+                  className="p-1"
+                  onClick={() => handleLikeComment(comment.id)}
+                >
+                  <Heart 
+                    className={`w-4 h-4 ${likedComments.has(comment.id) ? 'text-red-500 fill-red-500' : 'text-gray-400'}`} 
+                  />
+                </button>
+                {(likeCounts[comment.id] || 0) > 0 && (
+                  <span className="text-xs text-gray-400">
+                    {likeCounts[comment.id]}
+                  </span>
+                )}
+              </div>
             </div>
           ))
         )}

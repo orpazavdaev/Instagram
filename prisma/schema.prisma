@@ -33,8 +33,12 @@ model User {
   // Story highlights
   highlights Highlight[]
   
-  // Story views
+  // Story views and likes
   storyViews StoryView[]
+  storyLikes StoryLike[]
+  
+  // Comment likes
+  commentLikes CommentLike[]
 }
 
 model Post {
@@ -61,6 +65,21 @@ model Comment {
   
   postId    String
   post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  
+  likes     CommentLike[]
+}
+
+model CommentLike {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  commentId String
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, commentId])
 }
 
 model Like {
@@ -87,6 +106,20 @@ model Story {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   views     StoryView[]
+  likes     StoryLike[]
+}
+
+model StoryLike {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  storyId   String
+  story     Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, storyId])
 }
 
 model StoryView {

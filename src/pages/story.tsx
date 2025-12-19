@@ -42,8 +42,24 @@ export default function StoryPage() {
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
   const [progress, setProgress] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [likedStories, setLikedStories] = useState<Set<string>>(new Set());
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const viewedStoriesRef = useRef<Set<string>>(new Set());
+
+  const handleLikeStory = async (storyId: string) => {
+    const result = await post<{ liked: boolean }>(`/api/stories/${storyId}/like`, {});
+    if (result) {
+      setLikedStories(prev => {
+        const newSet = new Set(prev);
+        if (result.liked) {
+          newSet.add(storyId);
+        } else {
+          newSet.delete(storyId);
+        }
+        return newSet;
+      });
+    }
+  };
 
   // Load stories on mount
   useEffect(() => {
@@ -270,8 +286,11 @@ export default function StoryPage() {
         <button className="text-white">
           <Send className="w-6 h-6" />
         </button>
-        <button className="text-white">
-          <Heart className="w-6 h-6" />
+        <button 
+          className="text-white"
+          onClick={() => currentStory && handleLikeStory(currentStory.id)}
+        >
+          <Heart className={`w-6 h-6 ${likedStories.has(currentStory?.id || '') ? 'text-red-500 fill-red-500' : ''}`} />
         </button>
         <input
           type="text"

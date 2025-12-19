@@ -21,76 +21,124 @@ interface UserProfile {
   highlights: Array<{ id: string; name: string; image: string }>;
 }
 
-// Fallback data
-const fallbackProfile = {
-  username: 'orpaz_avdaev',
-  fullName: 'orpaz_avdaev',
-  avatar: 'https://i.pravatar.cc/150?img=33',
-  bio: `Lorem ipsum dolor sit amet consectetur. Arcu facilisis sed orci augue at augue❤️
-Vitae vitae sed duis eu elit dapibus aenean tellus sed.
-Diam massa at fringilla donec. Orci odio ac aliquam sit proin nulla elit ut tellus.`,
-  posts: 27,
-  followers: 137,
-  following: 154,
-};
+interface StoryGroup {
+  user: {
+    id: string;
+    username: string;
+    avatar: string;
+  };
+  stories: Array<{ id: string; image: string }>;
+  allViewed: boolean;
+}
 
-const fallbackHighlights = [
-  { id: '0', name: 'New', isNew: true },
-  { id: '1', name: 'Me', image: 'https://i.pravatar.cc/150?img=33' },
-  { id: '2', name: 'Food', image: 'https://picsum.photos/seed/food/150/150' },
-  { id: '3', name: 'Life', image: 'https://picsum.photos/seed/life/150/150' },
-  { id: '4', name: 'Sea', image: 'https://picsum.photos/seed/sea/150/150' },
-  { id: '5', name: 'Travel', image: 'https://picsum.photos/seed/travel/150/150' },
-  { id: '6', name: 'Friends', image: 'https://picsum.photos/seed/friends/150/150' },
-  { id: '7', name: 'Music', image: 'https://picsum.photos/seed/music/150/150' },
-];
+// Skeleton Components
+function ProfileSkeleton() {
+  return (
+    <div className="animate-pulse">
+      {/* Avatar and Stats */}
+      <div className="flex items-center gap-6 mb-4">
+        <div className="w-24 h-24 rounded-full bg-gray-200" />
+        <div className="flex-1 flex justify-around">
+          <div className="text-center">
+            <div className="w-8 h-5 bg-gray-200 rounded mx-auto mb-1" />
+            <div className="w-10 h-3 bg-gray-200 rounded mx-auto" />
+          </div>
+          <div className="text-center">
+            <div className="w-8 h-5 bg-gray-200 rounded mx-auto mb-1" />
+            <div className="w-14 h-3 bg-gray-200 rounded mx-auto" />
+          </div>
+          <div className="text-center">
+            <div className="w-8 h-5 bg-gray-200 rounded mx-auto mb-1" />
+            <div className="w-14 h-3 bg-gray-200 rounded mx-auto" />
+          </div>
+        </div>
+      </div>
 
-const fallbackPosts = [
-  { id: '1', image: 'https://picsum.photos/seed/bird1/400/400' },
-  { id: '2', image: 'https://picsum.photos/seed/cat1/400/400' },
-  { id: '3', image: 'https://picsum.photos/seed/turtle1/400/400' },
-  { id: '4', image: 'https://picsum.photos/seed/bird2/400/400' },
-  { id: '5', image: 'https://picsum.photos/seed/fish1/400/400' },
-  { id: '6', image: 'https://picsum.photos/seed/bird3/400/400' },
-  { id: '7', image: 'https://picsum.photos/seed/bird4/400/400' },
-  { id: '8', image: 'https://picsum.photos/seed/hamster1/400/400' },
-  { id: '9', image: 'https://picsum.photos/seed/bird5/400/400' },
-];
+      {/* Name and Bio */}
+      <div className="mb-4">
+        <div className="w-32 h-4 bg-gray-200 rounded mb-2" />
+        <div className="w-full h-3 bg-gray-200 rounded mb-1" />
+        <div className="w-3/4 h-3 bg-gray-200 rounded" />
+      </div>
+
+      {/* Buttons */}
+      <div className="flex gap-2 mb-6">
+        <div className="flex-1 h-9 bg-gray-200 rounded-lg" />
+        <div className="flex-1 h-9 bg-gray-200 rounded-lg" />
+      </div>
+
+      {/* Highlights */}
+      <div className="flex gap-4 mb-4">
+        {[1, 2, 3, 4, 5].map(i => (
+          <div key={i} className="flex flex-col items-center gap-1">
+            <div className="w-16 h-16 rounded-full bg-gray-200" />
+            <div className="w-10 h-3 bg-gray-200 rounded" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PostsGridSkeleton() {
+  return (
+    <div className="grid grid-cols-3 gap-0.5 animate-pulse">
+      {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(i => (
+        <div key={i} className="aspect-square bg-gray-200" />
+      ))}
+    </div>
+  );
+}
 
 export default function ProfilePage() {
   const { user } = useAuth();
   const { get } = useApi();
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [useFallback, setUseFallback] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasStory, setHasStory] = useState(false);
+  const [storyViewed, setStoryViewed] = useState(false);
 
   useEffect(() => {
     loadProfile();
   }, [user]);
 
   const loadProfile = async () => {
+    setIsLoading(true);
     if (!user?.username) {
-      setUseFallback(true);
+      setIsLoading(false);
       return;
     }
 
-    const data = await get<UserProfile>(`/api/users/${user.username}`);
-    if (data) {
-      setProfile(data);
-    } else {
-      setUseFallback(true);
+    const [profileData, storiesData] = await Promise.all([
+      get<UserProfile>(`/api/users/${user.username}`),
+      get<StoryGroup[]>('/api/stories'),
+    ]);
+
+    if (profileData) {
+      setProfile(profileData);
     }
+
+    // Check if current user has stories
+    if (storiesData && user?.id) {
+      const myStories = storiesData.find(g => g.user.id === user.id);
+      if (myStories && myStories.stories.length > 0) {
+        setHasStory(true);
+        setStoryViewed(myStories.allViewed);
+      }
+    }
+
+    setIsLoading(false);
   };
 
-  const profileData = profile || fallbackProfile;
   const highlights = profile?.highlights?.length 
     ? [{ id: '0', name: 'New', isNew: true }, ...profile.highlights.map(h => ({ ...h, isNew: false }))]
-    : fallbackHighlights;
-  const posts = profile?.posts?.length ? profile.posts : fallbackPosts;
+    : [{ id: '0', name: 'New', isNew: true }];
 
   return (
-    <div className="bg-white">
+    <div className="bg-white pb-20">
       {/* Header */}
-      <div className="flex items-center justify-end px-4 py-3">
+      <div className="flex items-center justify-between px-4 py-3">
+        <span className="font-semibold text-lg">{profile?.username || user?.username || ''}</span>
         <Link href="/settings" className="p-2">
           <Settings className="w-6 h-6 text-gray-700" />
         </Link>
@@ -98,57 +146,69 @@ export default function ProfilePage() {
 
       {/* Profile Info */}
       <div className="px-4 pb-4">
-        {/* Avatar and Stats */}
-        <div className="flex items-center gap-6 mb-4">
-          <Avatar 
-            src={profile?.avatar || fallbackProfile.avatar} 
-            size="xxl" 
-            hasStory 
-          />
-          <div className="flex-1 flex justify-around">
-            <div className="text-center">
-              <p className="font-semibold text-lg">
-                {profile?.postsCount ?? fallbackProfile.posts}
-              </p>
-              <p className="text-sm text-gray-500">Posts</p>
+        {isLoading ? (
+          <ProfileSkeleton />
+        ) : profile ? (
+          <>
+            {/* Avatar and Stats */}
+            <div className="flex items-center gap-6 mb-4">
+              {hasStory ? (
+                <Link href={`/story?userId=${user?.id}`}>
+                  <Avatar 
+                    src={profile.avatar || 'https://i.pravatar.cc/150'} 
+                    size="xxl" 
+                    hasStory={true}
+                    isViewed={storyViewed}
+                  />
+                </Link>
+              ) : (
+                <Avatar 
+                  src={profile.avatar || 'https://i.pravatar.cc/150'} 
+                  size="xxl" 
+                />
+              )}
+              <div className="flex-1 flex justify-around">
+                <div className="text-center">
+                  <p className="font-semibold text-lg">{profile.postsCount}</p>
+                  <p className="text-sm text-gray-500">Posts</p>
+                </div>
+                <div className="text-center">
+                  <p className="font-semibold text-lg">{profile.followersCount}</p>
+                  <p className="text-sm text-gray-500">Followers</p>
+                </div>
+                <div className="text-center">
+                  <p className="font-semibold text-lg">{profile.followingCount}</p>
+                  <p className="text-sm text-gray-500">Following</p>
+                </div>
+              </div>
             </div>
-            <div className="text-center">
-              <p className="font-semibold text-lg">
-                {profile?.followersCount ?? fallbackProfile.followers}
-              </p>
-              <p className="text-sm text-gray-500">Followers</p>
+
+            {/* Name and Bio */}
+            <div className="mb-4">
+              <p className="font-semibold">{profile.fullName}</p>
+              {profile.bio && (
+                <p className="text-sm text-gray-700 whitespace-pre-line">{profile.bio}</p>
+              )}
             </div>
-            <div className="text-center">
-              <p className="font-semibold text-lg">
-                {profile?.followingCount ?? fallbackProfile.following}
-              </p>
-              <p className="text-sm text-gray-500">Following</p>
+
+            {/* Action Buttons */}
+            <div className="flex gap-2 mb-6">
+              <Button variant="secondary" fullWidth>Edit profile</Button>
+              <Button variant="secondary" fullWidth>Share Profile</Button>
             </div>
+
+            {/* Story Highlights */}
+            <div className="flex gap-4 overflow-x-auto hide-scrollbar -mx-4 px-4 pb-4">
+              {highlights.map((highlight) => (
+                <StoryHighlight key={highlight.id} {...highlight} />
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="text-center py-8 text-gray-500">
+            <p>Could not load profile</p>
           </div>
-        </div>
-
-        {/* Name and Bio */}
-        <div className="mb-4">
-          <p className="font-semibold">
-            {profile?.fullName || fallbackProfile.fullName}
-          </p>
-          <p className="text-sm text-gray-700 whitespace-pre-line">
-            {profile?.bio || fallbackProfile.bio}
-          </p>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex gap-2 mb-6">
-          <Button variant="secondary" fullWidth>Edit profile</Button>
-          <Button variant="secondary" fullWidth>Share Profile</Button>
-        </div>
-
-        {/* Story Highlights */}
-        <div className="flex gap-4 overflow-x-auto hide-scrollbar -mx-4 px-4 pb-4">
-          {highlights.map((highlight) => (
-            <StoryHighlight key={highlight.id} {...highlight} />
-          ))}
-        </div>
+        )}
       </div>
 
       {/* Tabs */}
@@ -162,7 +222,16 @@ export default function ProfilePage() {
       </div>
 
       {/* Posts Grid */}
-      <PostsGrid posts={posts} />
+      {isLoading ? (
+        <PostsGridSkeleton />
+      ) : profile?.posts && profile.posts.length > 0 ? (
+        <PostsGrid posts={profile.posts} />
+      ) : (
+        <div className="text-center py-12 text-gray-400">
+          <Grid3X3 className="w-12 h-12 mx-auto mb-2" />
+          <p>No posts yet</p>
+        </div>
+      )}
     </div>
   );
 }

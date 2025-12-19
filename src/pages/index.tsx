@@ -67,17 +67,31 @@ function PostSkeleton() {
   );
 }
 
+// Cache data between navigations
+let cachedPosts: Post[] | null = null;
+let cachedStories: StoryGroup[] | null = null;
+
 export default function Home() {
   const { get, post: apiPost } = useApi();
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [stories, setStories] = useState<StoryGroup[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [posts, setPosts] = useState<Post[]>(cachedPosts || []);
+  const [stories, setStories] = useState<StoryGroup[]>(cachedStories || []);
+  const [isLoading, setIsLoading] = useState(!cachedPosts);
 
   useEffect(() => {
-    loadData();
+    // Only load if no cached data
+    if (!cachedPosts) {
+      loadData();
+    }
   }, []);
 
-  const loadData = async () => {
+  const loadData = async (forceRefresh = false) => {
+    if (!forceRefresh && cachedPosts && cachedStories) {
+      setPosts(cachedPosts);
+      setStories(cachedStories);
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     const [postsData, storiesData] = await Promise.all([
       get<Post[]>('/api/posts'),
@@ -86,19 +100,40 @@ export default function Home() {
 
     if (postsData) {
       setPosts(postsData);
+      cachedPosts = postsData;
     }
 
     if (storiesData) {
       setStories(storiesData);
+      cachedStories = storiesData;
     }
     setIsLoading(false);
   };
 
   const handleLike = async (postId: string) => {
-    const result = await apiPost<{ liked: boolean }>(`/api/posts/${postId}/like`, {});
-    if (result) {
-      loadData(); // Refresh posts
-    }
+    if (!currentUserId) return;
+    
+    // Optimistic update - update UI immediately
+    setPosts(prevPosts => {
+      const updatedPosts = prevPosts.map(post => {
+        if (post.id === postId) {
+          const isCurrentlyLiked = post.likedByUser.includes(currentUserId);
+          return {
+            ...post,
+            likesCount: isCurrentlyLiked ? post.likesCount - 1 : post.likesCount + 1,
+            likedByUser: isCurrentlyLiked 
+              ? post.likedByUser.filter(id => id !== currentUserId)
+              : [...post.likedByUser, currentUserId],
+          };
+        }
+        return post;
+      });
+      cachedPosts = updatedPosts; // Update cache
+      return updatedPosts;
+    });
+
+    // Send to server (no need to wait or refresh)
+    await apiPost<{ liked: boolean }>(`/api/posts/${postId}/like`, {});
   };
 
   const currentUserId = typeof window !== 'undefined' 

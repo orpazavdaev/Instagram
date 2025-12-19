@@ -20,6 +20,9 @@ export function useApi() {
 
     try {
       const token = getToken();
+      if (!token && options?.method === 'POST') {
+        console.warn('No token found for POST request to:', url);
+      }
       const headers: HeadersInit = {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),

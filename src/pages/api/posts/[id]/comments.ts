@@ -30,7 +30,13 @@ async function getComments(postId: string, res: NextApiResponse) {
       },
     });
 
-    res.status(200).json(comments);
+    // Add likesCount (will be populated after Prisma regenerate)
+    const commentsWithLikes = comments.map(comment => ({
+      ...comment,
+      likesCount: 0, // TODO: Add likes count after prisma generate
+    }));
+
+    res.status(200).json(commentsWithLikes);
   } catch (error) {
     console.error('Get comments error:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -73,5 +79,6 @@ async function createComment(req: NextApiRequest, postId: string, res: NextApiRe
     res.status(500).json({ error: 'Internal server error' });
   }
 }
+
 
 

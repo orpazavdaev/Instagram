@@ -35,6 +35,19 @@ function getTimeAgo(date: string): string {
   return `${Math.floor(seconds / 86400)}d`;
 }
 
+// Skeleton Component
+function ConversationSkeleton() {
+  return (
+    <div className="flex items-center gap-3 px-4 py-3 animate-pulse">
+      <div className="w-14 h-14 rounded-full bg-gray-200" />
+      <div className="flex-1">
+        <div className="w-24 h-4 bg-gray-200 rounded mb-2" />
+        <div className="w-40 h-3 bg-gray-200 rounded" />
+      </div>
+    </div>
+  );
+}
+
 export default function MessagesPage() {
   const { user } = useAuth();
   const { get } = useApi();
@@ -42,24 +55,26 @@ export default function MessagesPage() {
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [showNewChat, setShowNewChat] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    loadConversations();
-    loadUsers();
+    loadData();
   }, []);
 
-  const loadConversations = async () => {
-    const data = await get<Conversation[]>('/api/messages');
-    if (data) {
-      setConversations(data);
+  const loadData = async () => {
+    setIsLoading(true);
+    const [convData, usersData] = await Promise.all([
+      get<Conversation[]>('/api/messages'),
+      get<User[]>('/api/users'),
+    ]);
+    
+    if (convData) {
+      setConversations(convData);
     }
-  };
-
-  const loadUsers = async () => {
-    const data = await get<User[]>('/api/users');
-    if (data) {
-      setAllUsers(data.filter(u => u.id !== user?.id));
+    if (usersData) {
+      setAllUsers(usersData.filter(u => u.id !== user?.id));
     }
+    setIsLoading(false);
   };
 
   const filteredUsers = allUsers.filter(u => 
@@ -133,7 +148,13 @@ export default function MessagesPage() {
 
       {/* Message List */}
       <div className="pb-20">
-        {conversations.length === 0 ? (
+        {isLoading ? (
+          <>
+            <ConversationSkeleton />
+            <ConversationSkeleton />
+            <ConversationSkeleton />
+          </>
+        ) : conversations.length === 0 ? (
           <div className="text-center text-gray-500 py-8">
             <p>No messages yet</p>
             <p className="text-sm">Click the pen icon to start a new chat!</p>

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { ChevronLeft, Phone, Video, Info, Send, Image, Mic, Heart } from 'lucide-react';
+import { ChevronLeft, Phone, Video, Send, Image, Mic, Heart } from 'lucide-react';
 import Avatar from '@/components/shared/Avatar';
 import { useAuth } from '@/context/AuthContext';
 import { useApi } from '@/hooks/useApi';
@@ -24,6 +24,16 @@ interface UserInfo {
   fullName: string;
 }
 
+// Skeleton Components
+function MessageSkeleton({ isOwn }: { isOwn: boolean }) {
+  return (
+    <div className={`flex mb-3 ${isOwn ? 'justify-end' : 'justify-start'} animate-pulse`}>
+      {!isOwn && <div className="w-6 h-6 rounded-full bg-gray-200 mr-2" />}
+      <div className={`${isOwn ? 'w-48' : 'w-40'} h-10 rounded-3xl bg-gray-200`} />
+    </div>
+  );
+}
+
 export default function ChatPage() {
   const router = useRouter();
   const { userId } = router.query;
@@ -34,12 +44,12 @@ export default function ChatPage() {
   const [partner, setPartner] = useState<UserInfo | null>(null);
   const [newMessage, setNewMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (userId) {
-      loadMessages();
-      loadPartnerInfo();
+      loadData();
     }
   }, [userId]);
 
@@ -51,22 +61,23 @@ export default function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const loadMessages = async () => {
-    const data = await get<Message[]>(`/api/messages/${userId}`);
-    if (data) {
-      setMessages(data);
+  const loadData = async () => {
+    setIsLoading(true);
+    const [messagesData, users] = await Promise.all([
+      get<Message[]>(`/api/messages/${userId}`),
+      get<UserInfo[]>('/api/users'),
+    ]);
+    
+    if (messagesData) {
+      setMessages(messagesData);
     }
-  };
-
-  const loadPartnerInfo = async () => {
-    // Try to get user info from the messages API or use a placeholder
-    const users = await get<UserInfo[]>('/api/users/search?q=');
     if (users) {
       const found = users.find(u => u.id === userId);
       if (found) {
         setPartner(found);
       }
     }
+    setIsLoading(false);
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -74,15 +85,28 @@ export default function ChatPage() {
     
     if (!newMessage.trim() || !userId) return;
     
+    // Optimistic update
+    const optimisticMessage: Message = {
+      id: `temp-${Date.now()}`,
+      text: newMessage,
+      createdAt: new Date().toISOString(),
+      sender: {
+        id: user?.id || '',
+        username: user?.username || '',
+        avatar: user?.avatar || '',
+      },
+    };
+    setMessages([...messages, optimisticMessage]);
+    setNewMessage('');
     setIsSubmitting(true);
     
     const result = await apiPost<Message>(`/api/messages/${userId}`, {
-      text: newMessage,
+      text: optimisticMessage.text,
     });
     
     if (result) {
-      setMessages([...messages, result]);
-      setNewMessage('');
+      // Replace optimistic message with real one
+      setMessages(prev => prev.map(m => m.id === optimisticMessage.id ? result : m));
     }
     
     setIsSubmitting(false);
@@ -96,15 +120,27 @@ export default function ChatPage() {
           <Link href="/messages" className="p-1">
             <ChevronLeft className="w-6 h-6 text-gray-700" />
           </Link>
-          <Avatar 
-            src={partner?.avatar || 'https://i.pravatar.cc/150'} 
-            alt={partner?.username || 'User'} 
-            size="sm" 
-          />
-          <div>
-            <p className="font-semibold text-sm">{partner?.username || 'User'}</p>
-            <p className="text-xs text-gray-500">Active now</p>
-          </div>
+          {isLoading ? (
+            <div className="flex items-center gap-3 animate-pulse">
+              <div className="w-8 h-8 rounded-full bg-gray-200" />
+              <div>
+                <div className="w-20 h-4 bg-gray-200 rounded mb-1" />
+                <div className="w-16 h-3 bg-gray-200 rounded" />
+              </div>
+            </div>
+          ) : (
+            <>
+              <Avatar 
+                src={partner?.avatar || 'https://i.pravatar.cc/150'} 
+                alt={partner?.username || 'User'} 
+                size="sm" 
+              />
+              <div>
+                <p className="font-semibold text-sm">{partner?.username || 'User'}</p>
+                <p className="text-xs text-gray-500">Active now</p>
+              </div>
+            </>
+          )}
         </div>
         <div className="flex items-center gap-4">
           <button className="p-1">
@@ -118,7 +154,14 @@ export default function ChatPage() {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 pb-20">
-        {messages.length === 0 ? (
+        {isLoading ? (
+          <>
+            <MessageSkeleton isOwn={false} />
+            <MessageSkeleton isOwn={true} />
+            <MessageSkeleton isOwn={false} />
+            <MessageSkeleton isOwn={true} />
+          </>
+        ) : messages.length === 0 ? (
           <div className="text-center text-gray-500 py-8">
             <Avatar 
               src={partner?.avatar || 'https://i.pravatar.cc/150'} 
@@ -140,14 +183,13 @@ export default function ChatPage() {
                   <Avatar 
                     src={message.sender.avatar || 'https://i.pravatar.cc/150'} 
                     size="xs" 
-                    className="mr-2 mt-1"
                   />
                 )}
                 <div 
                   className={`max-w-[70%] px-4 py-2 rounded-3xl ${
                     isOwn 
                       ? 'bg-blue-500 text-white' 
-                      : 'bg-gray-100 text-gray-900'
+                      : 'bg-gray-100 text-gray-900 ml-2'
                   }`}
                 >
                   <p className="text-sm">{message.text}</p>
@@ -198,5 +240,3 @@ export default function ChatPage() {
     </div>
   );
 }
-
-
