@@ -10,7 +10,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const payload = getUserFromRequest(req);
     if (!payload) {
-      return res.status(401).json({ error: 'Unauthorized' });
+      // If not logged in, just return success without tracking
+      return res.status(200).json({ viewed: false });
     }
 
     const { id: storyId } = req.query;

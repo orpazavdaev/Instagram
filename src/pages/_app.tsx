@@ -10,7 +10,7 @@ import '@/styles/globals.css';
 const publicPages = ['/login'];
 
   // Pages without bottom nav (full screen pages)
-  const noNavPages = ['/login', '/create', '/story'];
+  const noNavPages = ['/login', '/create', '/story', '/comments'];
   const noNavPrefixes = ['/chat/'];
 
 function AppContent({ Component, pageProps }: AppProps) {
