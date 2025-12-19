@@ -205,11 +205,13 @@ export default function Home() {
               <div className="px-4 pt-3 pb-2">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-4">
-                    <button onClick={() => isFromApi && handleLike(post.id)}>
+                    <button onClick={() => isFromApi && handleLike(post.id)} className="flex items-center gap-1">
                       <Heart className={`w-6 h-6 ${isLiked ? 'text-red-500 fill-red-500' : ''}`} />
+                      <span className="text-sm">{likes}</span>
                     </button>
-                    <Link href={`/comments?postId=${post.id}`}>
+                    <Link href={`/comments?postId=${post.id}`} className="flex items-center gap-1">
                       <MessageCircle className="w-6 h-6" />
+                      <span className="text-sm">{comments}</span>
                     </Link>
                     <button>
                       <Send className="w-6 h-6" />
@@ -218,17 +220,6 @@ export default function Home() {
                   <button>
                     <Bookmark className="w-6 h-6" />
                   </button>
-                </div>
-
-                {/* Likes and Comments Count */}
-                <div className="flex items-center justify-between text-sm mb-1">
-                  <div className="flex items-center gap-2">
-                    <Heart className="w-4 h-4" />
-                    <span>{likes}</span>
-                    <MessageCircle className="w-4 h-4 ml-2" />
-                    <span>{comments}</span>
-                  </div>
-                  <Send className="w-4 h-4" />
                 </div>
 
                 {/* Caption */}
