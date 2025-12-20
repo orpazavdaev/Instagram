@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
+import Link from 'next/link';
 import { X, MoreHorizontal, Send, Heart, Volume2, VolumeX, Pause } from 'lucide-react';
 import Avatar from '@/components/shared/Avatar';
 import { useApi } from '@/hooks/useApi';
@@ -496,6 +497,9 @@ export default function StoryPage() {
       onTouchStart={(e) => { handleTouchStart(e); pauseProgress(); }}
       onTouchEnd={(e) => { handleTouchEnd(e); resumeProgress(); }}
     >
+      {/* Top gradient for visibility on bright images */}
+      <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-black/60 via-black/30 to-transparent z-10 pointer-events-none" />
+
       {/* Progress Bars */}
       <div className="absolute top-0 left-0 right-0 flex gap-0.5 p-2 pt-3 z-20">
         {currentGroup.stories.map((story, index) => {
@@ -529,22 +533,37 @@ export default function StoryPage() {
       {/* Header */}
       <div className="absolute top-6 left-0 right-0 flex items-center justify-between px-3 py-2 z-20">
         <div className="flex items-center gap-2">
-          <Avatar src={user.avatar || 'https://i.pravatar.cc/150'} alt={user.username} size="sm" />
-          <span className="text-white font-semibold text-sm">{user.username}</span>
-          <span className="text-white/60 text-sm">{time}</span>
+          <Link 
+            href={`/user/${user.username}`} 
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+          >
+            <Avatar src={user.avatar || 'https://i.pravatar.cc/150'} alt={user.username} size="sm" />
+          </Link>
+          <Link 
+            href={`/user/${user.username}`} 
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+            className="text-white font-semibold text-sm drop-shadow-md"
+          >
+            {user.username}
+          </Link>
+          <span className="text-white/80 text-sm drop-shadow-md">{time}</span>
           {isPaused && <Pause className="w-4 h-4 text-white/60" />}
         </div>
         
         <div className="flex items-center gap-1">
           {isVideo && (
-            <button onClick={(e) => { e.stopPropagation(); setIsMuted(!isMuted); }} className="p-2 text-white">
+            <button onClick={(e) => { e.stopPropagation(); setIsMuted(!isMuted); }} className="p-2 text-white drop-shadow-md">
               {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
             </button>
           )}
-          <button onClick={(e) => e.stopPropagation()} className="p-2 text-white">
+          <button onClick={(e) => e.stopPropagation()} className="p-2 text-white drop-shadow-md">
             <MoreHorizontal className="w-5 h-5" />
           </button>
-          <button onClick={(e) => { e.stopPropagation(); router.push('/'); }} className="p-2 text-white">
+          <button onClick={(e) => { e.stopPropagation(); router.push('/'); }} className="p-2 text-white drop-shadow-md">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -571,6 +590,9 @@ export default function StoryPage() {
           />
         )}
       </div>
+
+      {/* Bottom gradient for visibility on bright images */}
+      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/60 via-black/30 to-transparent z-10 pointer-events-none"></div>
 
       {/* Bottom Input */}
       <div 

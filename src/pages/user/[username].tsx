@@ -89,17 +89,24 @@ export default function UserProfilePage() {
   const handleFollow = async () => {
     if (!profile) return;
     
+    console.log('handleFollow called for:', profile.username);
+    console.log('Current isFollowing:', isFollowing);
+    
     // Optimistic update
+    const wasFollowing = isFollowing;
     setIsFollowing(!isFollowing);
     setFollowersCount(prev => isFollowing ? prev - 1 : prev + 1);
 
     const result = await apiPost<{ following: boolean }>(`/api/users/${profile.username}/follow`, {});
+    console.log('Follow API result:', result);
+    
     if (result) {
       setIsFollowing(result.following);
     } else {
       // Revert on error
-      setIsFollowing(isFollowing);
-      setFollowersCount(prev => isFollowing ? prev + 1 : prev - 1);
+      console.log('Follow API failed, reverting');
+      setIsFollowing(wasFollowing);
+      setFollowersCount(prev => wasFollowing ? prev : prev - 1);
     }
   };
 
@@ -164,7 +171,13 @@ export default function UserProfilePage() {
             >
               {isFollowing ? 'Following' : 'Follow'}
             </Button>
-            <Button variant="secondary" fullWidth>Message</Button>
+            <Button 
+              variant="secondary" 
+              fullWidth
+              onClick={() => router.push(`/chat/${profile.id}`)}
+            >
+              Message
+            </Button>
           </div>
         </div>
       ) : (

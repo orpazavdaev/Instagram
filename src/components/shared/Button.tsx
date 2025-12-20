@@ -4,6 +4,9 @@ interface ButtonProps {
   size?: 'sm' | 'md' | 'lg';
   fullWidth?: boolean;
   className?: string;
+  onClick?: () => void;
+  disabled?: boolean;
+  type?: 'button' | 'submit' | 'reset';
 }
 
 const variants = {
@@ -23,15 +26,22 @@ export default function Button({
   variant = 'primary', 
   size = 'md',
   fullWidth = false,
-  className = ''
+  className = '',
+  onClick,
+  disabled = false,
+  type = 'button'
 }: ButtonProps) {
   return (
     <button
+      type={type}
+      onClick={onClick}
+      disabled={disabled}
       className={`
         ${variants[variant]} 
         ${sizes[size]} 
         ${fullWidth ? 'w-full' : ''} 
         rounded-lg font-semibold transition-colors
+        ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
         ${className}
       `}
     >

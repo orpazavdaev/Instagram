@@ -311,10 +311,12 @@ export default function Home() {
                 {/* Post Header */}
                 <div className="flex items-center justify-between px-4 py-3">
                   <div className="flex items-center gap-3">
-                    <Link href={`/profile/${post.user.username}`}>
+                    <Link href={`/user/${post.user.username}`}>
                       <Avatar src={post.user.avatar || 'https://i.pravatar.cc/150'} alt={post.user.username} size="sm" />
                     </Link>
-                    <span className="font-semibold text-sm">{post.user.username}</span>
+                    <Link href={`/user/${post.user.username}`} className="font-semibold text-sm">
+                      {post.user.username}
+                    </Link>
                   </div>
                   <button className="p-1">
                     <MoreHorizontal className="w-5 h-5 text-gray-700" />

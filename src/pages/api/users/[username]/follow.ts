@@ -9,7 +9,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const payload = getUserFromRequest(req);
+    console.log('Follow API - payload:', payload);
+    console.log('Follow API - username:', req.query.username);
+    
     if (!payload) {
+      console.log('Follow API - No payload, returning 401');
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
