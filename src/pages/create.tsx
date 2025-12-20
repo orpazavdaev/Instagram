@@ -134,7 +134,7 @@ export default function CreatePage() {
   const displayVideos = sampleVideos;
 
   return (
-    <div className="bg-black min-h-screen">
+    <div className="bg-black min-h-screen flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 bg-black sticky top-0 z-10">
         <Link href="/" className="text-white">
@@ -257,98 +257,96 @@ export default function CreatePage() {
       </div>
 
       {/* Media Grid */}
-      <div className="bg-black relative pb-24">
-        <div className="grid grid-cols-4 gap-0.5">
-          {isVideo ? (
-            // Video selection for reels
-            displayVideos.map((video, index) => (
-              <button 
-                key={index} 
-                className={`aspect-square relative ${selectedMedia === video ? 'ring-2 ring-blue-500 ring-inset' : ''}`}
-                onClick={() => handleSelectMedia(video)}
-              >
-                <video
-                  src={video}
-                  className="w-full h-full object-cover"
-                  muted
-                />
-                <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                  <Film className="w-6 h-6 text-white" />
-                </div>
-              </button>
+      <div className="grid grid-cols-4 gap-0.5 flex-1">
+        {isVideo ? (
+          // Video selection for reels
+          displayVideos.map((video, index) => (
+            <button 
+              key={index} 
+              className={`aspect-square relative ${selectedMedia === video ? 'ring-2 ring-blue-500 ring-inset' : ''}`}
+              onClick={() => handleSelectMedia(video)}
+            >
+              <video
+                src={video}
+                className="w-full h-full object-cover"
+                muted
+              />
+              <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                <Film className="w-6 h-6 text-white" />
+              </div>
+            </button>
+          ))
+        ) : (
+          // Image selection for posts and stories
+          isLoadingMedia ? (
+            // Loading skeleton
+            Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="aspect-square bg-gray-800 animate-pulse" />
             ))
           ) : (
-            // Image selection for posts and stories
-            isLoadingMedia ? (
-              // Loading skeleton
-              Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="aspect-square bg-gray-800 animate-pulse" />
-              ))
-            ) : (
-              displayImages.map((image, index) => (
-                <button 
-                  key={index} 
-                  className={`aspect-square relative ${selectedMedia === image ? 'ring-2 ring-blue-500 ring-inset' : ''}`}
-                  onClick={() => handleSelectMedia(image)}
-                >
-                  <Image
-                    src={image}
-                    alt={`Media ${index + 1}`}
-                    fill
-                    className="object-cover"
-                  />
-                </button>
-              ))
-            )
-          )}
-        </div>
+            displayImages.map((image, index) => (
+              <button 
+                key={index} 
+                className={`aspect-square relative ${selectedMedia === image ? 'ring-2 ring-blue-500 ring-inset' : ''}`}
+                onClick={() => handleSelectMedia(image)}
+              >
+                <Image
+                  src={image}
+                  alt={`Media ${index + 1}`}
+                  fill
+                  className="object-cover"
+                />
+              </button>
+            ))
+          )
+        )}
+      </div>
 
-        {/* Floating Bottom Tabs */}
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
-          <div className="bg-neutral-700/90 backdrop-blur-sm rounded-full p-1 flex gap-1">
-            <button 
-              onClick={() => {
-                setCreateType('POST');
-                setSelectedMedia('');
-                setCustomUrl('');
-              }}
-              className={`px-5 py-2 rounded-full text-xs font-semibold tracking-wide transition-colors ${
-                createType === 'POST' 
-                  ? 'bg-neutral-500 text-white' 
-                  : 'text-neutral-300 hover:text-white'
-              }`}
-            >
-              POST
-            </button>
-            <button 
-              onClick={() => {
-                setCreateType('STORY');
-                setSelectedMedia('');
-                setCustomUrl('');
-              }}
-              className={`px-5 py-2 rounded-full text-xs font-semibold tracking-wide transition-colors ${
-                createType === 'STORY' 
-                  ? 'bg-neutral-500 text-white' 
-                  : 'text-neutral-300 hover:text-white'
-              }`}
-            >
-              STORY
-            </button>
-            <button 
-              onClick={() => {
-                setCreateType('REEL');
-                setSelectedMedia('');
-                setCustomUrl('');
-              }}
-              className={`px-5 py-2 rounded-full text-xs font-semibold tracking-wide transition-colors ${
-                createType === 'REEL' 
-                  ? 'bg-neutral-500 text-white' 
-                  : 'text-neutral-300 hover:text-white'
-              }`}
-            >
-              REEL
-            </button>
-          </div>
+      {/* Floating Bottom Tabs */}
+      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
+        <div className="bg-neutral-700/90 backdrop-blur-sm rounded-full p-1 flex gap-1">
+          <button 
+            onClick={() => {
+              setCreateType('POST');
+              setSelectedMedia('');
+              setCustomUrl('');
+            }}
+            className={`px-5 py-2 rounded-full text-xs font-semibold tracking-wide transition-colors ${
+              createType === 'POST' 
+                ? 'bg-neutral-500 text-white' 
+                : 'text-neutral-300 hover:text-white'
+            }`}
+          >
+            POST
+          </button>
+          <button 
+            onClick={() => {
+              setCreateType('STORY');
+              setSelectedMedia('');
+              setCustomUrl('');
+            }}
+            className={`px-5 py-2 rounded-full text-xs font-semibold tracking-wide transition-colors ${
+              createType === 'STORY' 
+                ? 'bg-neutral-500 text-white' 
+                : 'text-neutral-300 hover:text-white'
+            }`}
+          >
+            STORY
+          </button>
+          <button 
+            onClick={() => {
+              setCreateType('REEL');
+              setSelectedMedia('');
+              setCustomUrl('');
+            }}
+            className={`px-5 py-2 rounded-full text-xs font-semibold tracking-wide transition-colors ${
+              createType === 'REEL' 
+                ? 'bg-neutral-500 text-white' 
+                : 'text-neutral-300 hover:text-white'
+            }`}
+          >
+            REEL
+          </button>
         </div>
       </div>
     </div>
