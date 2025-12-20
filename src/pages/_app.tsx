@@ -11,7 +11,7 @@ const publicPages = ['/login'];
 
   // Pages without bottom nav (full screen pages)
   const noNavPages = ['/login', '/create', '/story', '/comments'];
-  const noNavPrefixes = ['/chat/', '/reel/', '/followers/', '/following/', '/user/', '/post/'];
+  const noNavPrefixes = ['/chat/', '/reel/', '/followers/', '/following/', '/user/', '/post/', '/highlight/'];
 
 function AppContent({ Component, pageProps }: AppProps) {
   const router = useRouter();

@@ -111,8 +111,9 @@ model Story {
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   
-  views     StoryView[]
-  likes     StoryLike[]
+  views      StoryView[]
+  likes      StoryLike[]
+  highlights HighlightStory[]
 }
 
 model StoryLike {
@@ -149,6 +150,21 @@ model Highlight {
 
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  stories   HighlightStory[]
+}
+
+model HighlightStory {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  
+  highlightId String
+  highlight   Highlight @relation(fields: [highlightId], references: [id], onDelete: Cascade)
+  
+  storyId     String
+  story       Story     @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  
+  @@unique([highlightId, storyId])
 }
 
 model Message {

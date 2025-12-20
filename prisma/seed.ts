@@ -206,25 +206,123 @@ async function main() {
 
   console.log('✅ Created messages');
 
-  // Create highlights for demo user
-  await Promise.all([
+  // Create more stories for demo user (for highlights)
+  const demoStories = await Promise.all([
+    prisma.story.create({
+      data: {
+        userId: demoUser.id,
+        image: 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=720&h=1280&fit=crop',
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days for highlights
+      },
+    }),
+    prisma.story.create({
+      data: {
+        userId: demoUser.id,
+        image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=720&h=1280&fit=crop',
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      },
+    }),
+    prisma.story.create({
+      data: {
+        userId: demoUser.id,
+        image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=720&h=1280&fit=crop',
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      },
+    }),
+    prisma.story.create({
+      data: {
+        userId: demoUser.id,
+        image: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=720&h=1280&fit=crop',
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      },
+    }),
+    prisma.story.create({
+      data: {
+        userId: demoUser.id,
+        image: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=720&h=1280&fit=crop',
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      },
+    }),
+    prisma.story.create({
+      data: {
+        userId: demoUser.id,
+        image: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=720&h=1280&fit=crop',
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      },
+    }),
+  ]);
+
+  console.log('✅ Created demo user stories for highlights');
+
+  // Delete old highlights and create new ones with stories
+  await prisma.highlightStory.deleteMany({});
+  await prisma.highlight.deleteMany({ where: { userId: demoUser.id } });
+  
+  const highlights = await Promise.all([
     prisma.highlight.create({
       data: {
         userId: demoUser.id,
         name: 'Travel',
-        image: 'https://picsum.photos/seed/travel/150/150',
+        image: 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=150&h=150&fit=crop',
+        stories: {
+          create: [
+            { storyId: demoStories[0].id },
+            { storyId: demoStories[1].id },
+          ],
+        },
       },
     }),
     prisma.highlight.create({
       data: {
         userId: demoUser.id,
         name: 'Food',
-        image: 'https://picsum.photos/seed/food/150/150',
+        image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=150&h=150&fit=crop',
+        stories: {
+          create: [
+            { storyId: demoStories[2].id },
+          ],
+        },
+      },
+    }),
+    prisma.highlight.create({
+      data: {
+        userId: demoUser.id,
+        name: 'Fitness',
+        image: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=150&h=150&fit=crop',
+        stories: {
+          create: [
+            { storyId: demoStories[3].id },
+          ],
+        },
+      },
+    }),
+    prisma.highlight.create({
+      data: {
+        userId: demoUser.id,
+        name: 'Music',
+        image: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150&h=150&fit=crop',
+        stories: {
+          create: [
+            { storyId: demoStories[4].id },
+          ],
+        },
+      },
+    }),
+    prisma.highlight.create({
+      data: {
+        userId: demoUser.id,
+        name: 'Friends',
+        image: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=150&h=150&fit=crop',
+        stories: {
+          create: [
+            { storyId: demoStories[5].id },
+          ],
+        },
       },
     }),
   ]);
 
-  console.log('✅ Created highlights');
+  console.log('✅ Created highlights with stories');
 
   // Create sample reels
   const reels = await Promise.all([
