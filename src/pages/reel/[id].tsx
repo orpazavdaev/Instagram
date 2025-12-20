@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
+import Link from 'next/link';
 import { 
   ArrowLeft, 
   Heart, 
@@ -8,13 +9,13 @@ import {
   Bookmark, 
   MoreHorizontal,
   Play,
-  Pause,
   Volume2,
   VolumeX,
   X
 } from 'lucide-react';
 import Avatar from '@/components/shared/Avatar';
 import { useApi } from '@/hooks/useApi';
+import { useAuth } from '@/context/AuthContext';
 
 interface Comment {
   id: string;
@@ -45,73 +46,45 @@ interface Reel {
   isLiked: boolean;
 }
 
-export default function ReelPage() {
-  const router = useRouter();
-  const { id } = router.query;
-  const { get, post } = useApi();
-  
-  const [reel, setReel] = useState<Reel | null>(null);
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [showComments, setShowComments] = useState(false);
-  const [newComment, setNewComment] = useState('');
-  const [isPlaying, setIsPlaying] = useState(true);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isLiked, setIsLiked] = useState(false);
-  const [likesCount, setLikesCount] = useState(0);
-  
+// Single Reel Component
+function ReelItem({ 
+  reel, 
+  isActive, 
+  isMuted, 
+  onToggleMute,
+  onLike,
+  onOpenComments 
+}: { 
+  reel: Reel; 
+  isActive: boolean; 
+  isMuted: boolean;
+  onToggleMute: () => void;
+  onLike: (reelId: string) => void;
+  onOpenComments: (reelId: string) => void;
+}) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isLiked, setIsLiked] = useState(reel.isLiked);
+  const [likesCount, setLikesCount] = useState(reel.likesCount);
 
   useEffect(() => {
-    if (id) {
-      loadReel();
+    if (videoRef.current) {
+      if (isActive) {
+        videoRef.current.play().catch(() => {});
+        setIsPlaying(true);
+      } else {
+        videoRef.current.pause();
+        videoRef.current.currentTime = 0;
+        setIsPlaying(false);
+      }
     }
-  }, [id]);
+  }, [isActive]);
 
-  const loadReel = async () => {
-    setIsLoading(true);
-    const data = await get<Reel>(`/api/reels/${id}`);
-    if (data) {
-      setReel(data);
-      setIsLiked(data.isLiked);
-      setLikesCount(data.likesCount);
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.muted = isMuted;
     }
-    setIsLoading(false);
-  };
-
-  const loadComments = async () => {
-    const data = await get<Comment[]>(`/api/reels/${id}/comments`);
-    if (data) {
-      setComments(data);
-    }
-  };
-
-  const handleLike = async () => {
-    if (!reel) return;
-    
-    // Optimistic update
-    setIsLiked(!isLiked);
-    setLikesCount(prev => isLiked ? prev - 1 : prev + 1);
-    
-    const result = await post<{ liked: boolean }>(`/api/reels/${reel.id}/like`, {});
-    if (result) {
-      setIsLiked(result.liked);
-    } else {
-      // Revert on error
-      setIsLiked(isLiked);
-      setLikesCount(prev => isLiked ? prev + 1 : prev - 1);
-    }
-  };
-
-  const handleAddComment = async () => {
-    if (!newComment.trim() || !reel) return;
-
-    const result = await post<Comment>(`/api/reels/${reel.id}/comments`, { text: newComment });
-    if (result) {
-      setComments(prev => [result, ...prev]);
-      setNewComment('');
-    }
-  };
+  }, [isMuted]);
 
   const togglePlay = () => {
     if (videoRef.current) {
@@ -124,16 +97,10 @@ export default function ReelPage() {
     }
   };
 
-  const toggleMute = () => {
-    if (videoRef.current) {
-      videoRef.current.muted = !isMuted;
-      setIsMuted(!isMuted);
-    }
-  };
-
-  const openComments = () => {
-    setShowComments(true);
-    loadComments();
+  const handleLike = () => {
+    setIsLiked(!isLiked);
+    setLikesCount(prev => isLiked ? prev - 1 : prev + 1);
+    onLike(reel.id);
   };
 
   const formatCount = (count: number) => {
@@ -142,37 +109,8 @@ export default function ReelPage() {
     return count.toString();
   };
 
-  const getTimeAgo = (date: string): string => {
-    const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
-    if (seconds < 60) return 'now';
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
-    return `${Math.floor(seconds / 86400)}d`;
-  };
-
-  if (isLoading) {
-    return (
-      <div className="fixed inset-0 bg-black z-50 flex items-center justify-center">
-        <div className="text-white">Loading...</div>
-      </div>
-    );
-  }
-
-  if (!reel) {
-    return (
-      <div className="fixed inset-0 bg-black z-50 flex items-center justify-center">
-        <div className="text-center text-white">
-          <p className="mb-4">Reel not found</p>
-          <button onClick={() => router.back()} className="text-blue-400">
-            Go back
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="fixed inset-0 bg-black z-50">
+    <div className="h-screen w-full flex-shrink-0 relative bg-black snap-start">
       {/* Video */}
       <div className="absolute inset-0" onClick={togglePlay}>
         <video
@@ -180,29 +118,17 @@ export default function ReelPage() {
           src={reel.video}
           className="w-full h-full object-contain"
           loop
-          autoPlay
           muted={isMuted}
           playsInline
           poster={reel.thumbnail || undefined}
         />
         
-        {/* Play/Pause overlay */}
-        {!isPlaying && (
+        {/* Play overlay */}
+        {!isPlaying && isActive && (
           <div className="absolute inset-0 flex items-center justify-center">
             <Play className="w-20 h-20 text-white/80 fill-white/80" />
           </div>
         )}
-      </div>
-
-      {/* Top bar */}
-      <div className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between z-10 bg-gradient-to-b from-black/50 to-transparent">
-        <button onClick={() => router.back()} className="text-white">
-          <ArrowLeft className="w-6 h-6" />
-        </button>
-        <span className="text-white font-semibold">Reels</span>
-        <button onClick={toggleMute} className="text-white">
-          {isMuted ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
-        </button>
       </div>
 
       {/* Right side actions */}
@@ -212,7 +138,7 @@ export default function ReelPage() {
           <span className="text-white text-xs">{formatCount(likesCount)}</span>
         </button>
         
-        <button onClick={openComments} className="flex flex-col items-center gap-1">
+        <button onClick={() => onOpenComments(reel.id)} className="flex flex-col items-center gap-1">
           <MessageCircle className="w-7 h-7 text-white" />
           <span className="text-white text-xs">{formatCount(reel.commentsCount)}</span>
         </button>
@@ -232,7 +158,7 @@ export default function ReelPage() {
 
       {/* Bottom info */}
       <div className="absolute left-0 right-16 bottom-8 p-4 z-10">
-        <div className="flex items-center gap-2 mb-2">
+        <Link href={`/user/${reel.user.username}`} className="flex items-center gap-2 mb-2">
           <Avatar 
             src={reel.user.avatar || 'https://i.pravatar.cc/150'} 
             alt={reel.user.username} 
@@ -242,10 +168,160 @@ export default function ReelPage() {
           <button className="border border-white text-white text-xs px-3 py-1 rounded ml-2">
             Follow
           </button>
-        </div>
+        </Link>
         {reel.caption && (
           <p className="text-white text-sm line-clamp-2">{reel.caption}</p>
         )}
+      </div>
+    </div>
+  );
+}
+
+export default function ReelPage() {
+  const router = useRouter();
+  const { id } = router.query;
+  const { get, post } = useApi();
+  const { user } = useAuth();
+  
+  const [reels, setReels] = useState<Reel[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
+  const [showComments, setShowComments] = useState(false);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [newComment, setNewComment] = useState('');
+  const [activeReelId, setActiveReelId] = useState<string | null>(null);
+  
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    loadReels();
+  }, []);
+
+  useEffect(() => {
+    // Find initial index based on URL id
+    if (id && reels.length > 0) {
+      const index = reels.findIndex(r => r.id === id);
+      if (index !== -1) {
+        setCurrentIndex(index);
+        // Scroll to the reel
+        setTimeout(() => {
+          const container = containerRef.current;
+          if (container) {
+            container.scrollTo({ top: index * window.innerHeight, behavior: 'auto' });
+          }
+        }, 100);
+      }
+    }
+  }, [id, reels]);
+
+  const loadReels = async () => {
+    setIsLoading(true);
+    const data = await get<Reel[]>('/api/reels');
+    if (data) {
+      setReels(data);
+    }
+    setIsLoading(false);
+  };
+
+  const handleScroll = () => {
+    const container = containerRef.current;
+    if (container) {
+      const scrollTop = container.scrollTop;
+      const height = window.innerHeight;
+      const newIndex = Math.round(scrollTop / height);
+      
+      if (newIndex !== currentIndex && newIndex >= 0 && newIndex < reels.length) {
+        setCurrentIndex(newIndex);
+        // Update URL without navigation
+        const newId = reels[newIndex].id;
+        window.history.replaceState(null, '', `/reel/${newId}`);
+      }
+    }
+  };
+
+  const handleLike = async (reelId: string) => {
+    await post(`/api/reels/${reelId}/like`, {});
+  };
+
+  const handleOpenComments = async (reelId: string) => {
+    setActiveReelId(reelId);
+    setShowComments(true);
+    const data = await get<Comment[]>(`/api/reels/${reelId}/comments`);
+    if (data) {
+      setComments(data);
+    }
+  };
+
+  const handleAddComment = async () => {
+    if (!newComment.trim() || !activeReelId) return;
+
+    const result = await post<Comment>(`/api/reels/${activeReelId}/comments`, { text: newComment });
+    if (result) {
+      setComments(prev => [result, ...prev]);
+      setNewComment('');
+    }
+  };
+
+  const getTimeAgo = (date: string): string => {
+    const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
+    if (seconds < 60) return 'now';
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
+    return `${Math.floor(seconds / 86400)}d`;
+  };
+
+  if (isLoading) {
+    return (
+      <div className="fixed inset-0 bg-black z-50 flex items-center justify-center">
+        <div className="text-white">Loading...</div>
+      </div>
+    );
+  }
+
+  if (reels.length === 0) {
+    return (
+      <div className="fixed inset-0 bg-black z-50 flex items-center justify-center">
+        <div className="text-center text-white">
+          <p className="mb-4">No reels found</p>
+          <button onClick={() => router.back()} className="text-blue-400">
+            Go back
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black z-50">
+      {/* Top bar */}
+      <div className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between z-20 bg-gradient-to-b from-black/50 to-transparent">
+        <button onClick={() => router.push('/reels')} className="text-white">
+          <ArrowLeft className="w-6 h-6" />
+        </button>
+        <span className="text-white font-semibold">Reels</span>
+        <button onClick={() => setIsMuted(!isMuted)} className="text-white">
+          {isMuted ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
+        </button>
+      </div>
+
+      {/* Scrollable Reels Container */}
+      <div 
+        ref={containerRef}
+        className="h-full overflow-y-scroll snap-y snap-mandatory hide-scrollbar"
+        onScroll={handleScroll}
+      >
+        {reels.map((reel, index) => (
+          <ReelItem
+            key={reel.id}
+            reel={reel}
+            isActive={index === currentIndex}
+            isMuted={isMuted}
+            onToggleMute={() => setIsMuted(!isMuted)}
+            onLike={handleLike}
+            onOpenComments={handleOpenComments}
+          />
+        ))}
       </div>
 
       {/* Comments Modal */}
@@ -255,7 +331,7 @@ export default function ReelPage() {
             className="absolute inset-0 bg-black/50" 
             onClick={() => setShowComments(false)} 
           />
-          <div className="relative bg-white w-full max-h-[70vh] rounded-t-2xl flex flex-col">
+          <div className="relative bg-white w-full max-h-[70vh] rounded-t-2xl flex flex-col animate-slide-up">
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b">
               <span className="font-semibold">Comments</span>
@@ -319,5 +395,3 @@ export default function ReelPage() {
     </div>
   );
 }
-
-
