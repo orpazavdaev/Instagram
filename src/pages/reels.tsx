@@ -60,7 +60,7 @@ export default function ReelsPage() {
   };
 
   return (
-    <div className="bg-white pb-20">
+    <div className="bg-white min-h-screen">
       {/* Search Bar */}
       <div className="px-4 py-3">
         <div className="flex items-center gap-2 bg-gray-100 rounded-lg px-4 py-2.5">
@@ -70,7 +70,7 @@ export default function ReelsPage() {
       </div>
 
       {/* Reels Grid */}
-      <div className="grid grid-cols-3 gap-0.5">
+      <div className="grid grid-cols-3 gap-0.5 pb-24">
         {isLoading ? (
           // Skeleton grid
           Array.from({ length: 9 }).map((_, i) => (
