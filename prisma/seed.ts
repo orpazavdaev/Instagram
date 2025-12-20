@@ -226,6 +226,81 @@ async function main() {
 
   console.log('✅ Created highlights');
 
+  // Create sample reels
+  const reels = await Promise.all([
+    prisma.reel.create({
+      data: {
+        userId: demoUser.id,
+        video: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+        thumbnail: 'https://picsum.photos/seed/reel1/300/533',
+        caption: 'Amazing fire show 🔥',
+      },
+    }),
+    prisma.reel.create({
+      data: {
+        userId: users[0].id,
+        video: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+        thumbnail: 'https://picsum.photos/seed/reel2/300/533',
+        caption: 'Adventure awaits! 🏔️',
+      },
+    }),
+    prisma.reel.create({
+      data: {
+        userId: users[1].id,
+        video: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
+        thumbnail: 'https://picsum.photos/seed/reel3/300/533',
+        caption: 'Fun times! 🎉',
+      },
+    }),
+    prisma.reel.create({
+      data: {
+        userId: users[2].id,
+        video: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
+        thumbnail: 'https://picsum.photos/seed/reel4/300/533',
+        caption: 'Road trip vibes 🚗',
+      },
+    }),
+    prisma.reel.create({
+      data: {
+        userId: demoUser.id,
+        video: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+        thumbnail: 'https://picsum.photos/seed/reel5/300/533',
+        caption: 'Big Buck Bunny 🐰',
+      },
+    }),
+  ]);
+
+  console.log('✅ Created reels');
+
+  // Add some likes and comments to reels
+  await Promise.all([
+    prisma.reelLike.create({
+      data: { userId: users[0].id, reelId: reels[0].id },
+    }),
+    prisma.reelLike.create({
+      data: { userId: users[1].id, reelId: reels[0].id },
+    }),
+    prisma.reelLike.create({
+      data: { userId: users[2].id, reelId: reels[0].id },
+    }),
+    prisma.reelComment.create({
+      data: {
+        userId: users[0].id,
+        reelId: reels[0].id,
+        text: 'This is so cool! 🔥',
+      },
+    }),
+    prisma.reelComment.create({
+      data: {
+        userId: users[1].id,
+        reelId: reels[0].id,
+        text: 'Awesome! 😍',
+      },
+    }),
+  ]);
+
+  console.log('✅ Created reel likes and comments');
+
   console.log('🎉 Database seeded successfully!');
 }
 

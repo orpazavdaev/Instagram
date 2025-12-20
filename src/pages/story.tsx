@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
 import { X, MoreHorizontal, Send, Heart, VolumeX, Music } from 'lucide-react';
 import Avatar from '@/components/shared/Avatar';
 import { useApi } from '@/hooks/useApi';
+import { markStoryAsViewedInCache } from './index';
 
 interface Story {
   id: string;
@@ -43,8 +44,26 @@ export default function StoryPage() {
   const [progress, setProgress] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [likedStories, setLikedStories] = useState<Set<string>>(new Set());
+  
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const viewedStoriesRef = useRef<Set<string>>(new Set());
+  const storyGroupsRef = useRef<StoryGroup[]>([]);
+  const currentGroupIndexRef = useRef(0);
+  const currentStoryIndexRef = useRef(0);
+  const isNavigatingRef = useRef(false);
+
+  // Keep refs in sync with state
+  useEffect(() => {
+    storyGroupsRef.current = storyGroups;
+  }, [storyGroups]);
+
+  useEffect(() => {
+    currentGroupIndexRef.current = currentGroupIndex;
+  }, [currentGroupIndex]);
+
+  useEffect(() => {
+    currentStoryIndexRef.current = currentStoryIndex;
+  }, [currentStoryIndex]);
 
   const handleLikeStory = async (storyId: string) => {
     const result = await post<{ liked: boolean }>(`/api/stories/${storyId}/like`, {});
@@ -61,113 +80,179 @@ export default function StoryPage() {
     }
   };
 
-  // Load stories on mount
-  useEffect(() => {
-    loadStories();
-  }, []);
-
-  // Find the correct group when userId changes
-  useEffect(() => {
-    if (userId && storyGroups.length > 0) {
-      const groupIndex = storyGroups.findIndex(g => g.user.id === userId);
-      if (groupIndex !== -1) {
-        setCurrentGroupIndex(groupIndex);
-        // Find first unviewed story in this group
-        const firstUnviewedIndex = storyGroups[groupIndex].stories.findIndex(s => !s.isViewed);
-        setCurrentStoryIndex(firstUnviewedIndex !== -1 ? firstUnviewedIndex : 0);
-      }
-    }
-  }, [userId, storyGroups]);
-
-  // Start progress timer when story changes
-  useEffect(() => {
-    if (storyGroups.length > 0) {
-      startProgress();
-      markCurrentStoryAsViewed();
-    }
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, [currentGroupIndex, currentStoryIndex, storyGroups]);
-
-  const loadStories = async () => {
-    setIsLoading(true);
-    const data = await get<StoryGroup[]>('/api/stories');
-    if (data && data.length > 0) {
-      setStoryGroups(data);
-    }
-    setIsLoading(false);
-  };
-
-  const markCurrentStoryAsViewed = async () => {
-    const currentGroup = storyGroups[currentGroupIndex];
-    if (!currentGroup) return;
-    
-    const currentStory = currentGroup.stories[currentStoryIndex];
-    if (!currentStory || viewedStoriesRef.current.has(currentStory.id)) return;
-    
-    viewedStoriesRef.current.add(currentStory.id);
-    await post(`/api/stories/${currentStory.id}/view`, {});
-  };
-
-  const startProgress = () => {
-    setProgress(0);
+  const clearTimer = useCallback(() => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
+      intervalRef.current = null;
     }
+  }, []);
+
+  const goToNextStory = useCallback(() => {
+    if (isNavigatingRef.current) return;
+    isNavigatingRef.current = true;
+    
+    clearTimer();
+    
+    const groups = storyGroupsRef.current;
+    const groupIdx = currentGroupIndexRef.current;
+    const storyIdx = currentStoryIndexRef.current;
+    
+    const currentGroup = groups[groupIdx];
+    if (!currentGroup) {
+      isNavigatingRef.current = false;
+      router.push('/');
+      return;
+    }
+
+    // Find next unviewed story in current group
+    const nextUnviewedInGroup = currentGroup.stories.findIndex(
+      (s, idx) => idx > storyIdx && !s.isViewed
+    );
+
+    if (nextUnviewedInGroup !== -1) {
+      setCurrentStoryIndex(nextUnviewedInGroup);
+    } else if (storyIdx < currentGroup.stories.length - 1) {
+      setCurrentStoryIndex(storyIdx + 1);
+    } else {
+      // Find next user with unviewed stories
+      const nextGroupWithUnviewed = groups.findIndex(
+        (g, idx) => idx > groupIdx && !g.allViewed
+      );
+
+      if (nextGroupWithUnviewed !== -1) {
+        const firstUnviewed = groups[nextGroupWithUnviewed].stories.findIndex(s => !s.isViewed);
+        setCurrentGroupIndex(nextGroupWithUnviewed);
+        setCurrentStoryIndex(firstUnviewed !== -1 ? firstUnviewed : 0);
+      } else if (groupIdx < groups.length - 1) {
+        setCurrentGroupIndex(groupIdx + 1);
+        setCurrentStoryIndex(0);
+      } else {
+        isNavigatingRef.current = false;
+        router.push('/');
+        return;
+      }
+    }
+    
+    // Small delay before allowing next navigation
+    setTimeout(() => {
+      isNavigatingRef.current = false;
+    }, 100);
+  }, [clearTimer, router]);
+
+  const goToPrevStory = useCallback(() => {
+    if (isNavigatingRef.current) return;
+    isNavigatingRef.current = true;
+    
+    clearTimer();
+    
+    const groups = storyGroupsRef.current;
+    const groupIdx = currentGroupIndexRef.current;
+    const storyIdx = currentStoryIndexRef.current;
+
+    if (storyIdx > 0) {
+      setCurrentStoryIndex(storyIdx - 1);
+    } else if (groupIdx > 0) {
+      const prevGroup = groups[groupIdx - 1];
+      setCurrentGroupIndex(groupIdx - 1);
+      setCurrentStoryIndex(prevGroup.stories.length - 1);
+    }
+    
+    setTimeout(() => {
+      isNavigatingRef.current = false;
+    }, 100);
+  }, [clearTimer]);
+
+  const startProgress = useCallback(() => {
+    clearTimer();
+    setProgress(0);
+    
     intervalRef.current = setInterval(() => {
       setProgress((prev) => {
         if (prev >= 100) {
-          clearInterval(intervalRef.current!);
-          handleNextStory();
+          goToNextStory();
           return 100;
         }
         return prev + 0.5;
       });
     }, 25);
-  };
+  }, [clearTimer, goToNextStory]);
 
-  const handleNextStory = () => {
-    const currentGroup = storyGroups[currentGroupIndex];
+  const markCurrentStoryAsViewed = useCallback(async () => {
+    const groups = storyGroupsRef.current;
+    const groupIdx = currentGroupIndexRef.current;
+    const storyIdx = currentStoryIndexRef.current;
+    
+    const currentGroup = groups[groupIdx];
     if (!currentGroup) return;
+    
+    const currentStory = currentGroup.stories[storyIdx];
+    if (!currentStory || viewedStoriesRef.current.has(currentStory.id)) return;
+    
+    viewedStoriesRef.current.add(currentStory.id);
+    
+    // Update the home page cache
+    markStoryAsViewedInCache(currentStory.id, currentGroup.user.id);
+    
+    // Send to server (don't await, fire and forget)
+    post(`/api/stories/${currentStory.id}/view`, {});
+  }, [post]);
 
-    // If there are more stories in current group
-    if (currentStoryIndex < currentGroup.stories.length - 1) {
-      setCurrentStoryIndex(currentStoryIndex + 1);
-    } 
-    // Move to next user's stories
-    else if (currentGroupIndex < storyGroups.length - 1) {
-      setCurrentGroupIndex(currentGroupIndex + 1);
-      setCurrentStoryIndex(0);
-    } 
-    // No more stories, go back home
-    else {
-      router.push('/');
-    }
-  };
+  // Load stories on mount
+  useEffect(() => {
+    const loadStories = async () => {
+      setIsLoading(true);
+      const data = await get<StoryGroup[]>('/api/stories');
+      if (data && data.length > 0) {
+        // Sort: users with unviewed stories first
+        const sorted = [...data].sort((a, b) => {
+          if (a.allViewed && !b.allViewed) return 1;
+          if (!a.allViewed && b.allViewed) return -1;
+          return 0;
+        });
+        setStoryGroups(sorted);
+        storyGroupsRef.current = sorted;
+      }
+      setIsLoading(false);
+    };
+    
+    loadStories();
+    
+    return () => {
+      clearTimer();
+    };
+  }, [get, clearTimer]);
 
-  const handlePrevStory = () => {
-    // If there are previous stories in current group
-    if (currentStoryIndex > 0) {
-      setCurrentStoryIndex(currentStoryIndex - 1);
+  // Find the correct group when userId changes and storyGroups are loaded
+  useEffect(() => {
+    if (userId && storyGroups.length > 0 && !isLoading) {
+      const groupIndex = storyGroups.findIndex(g => g.user.id === userId);
+      if (groupIndex !== -1) {
+        setCurrentGroupIndex(groupIndex);
+        const firstUnviewedIndex = storyGroups[groupIndex].stories.findIndex(s => !s.isViewed);
+        setCurrentStoryIndex(firstUnviewedIndex !== -1 ? firstUnviewedIndex : 0);
+      }
     }
-    // Move to previous user's stories
-    else if (currentGroupIndex > 0) {
-      const prevGroup = storyGroups[currentGroupIndex - 1];
-      setCurrentGroupIndex(currentGroupIndex - 1);
-      setCurrentStoryIndex(prevGroup.stories.length - 1);
+  }, [userId, storyGroups.length, isLoading]);
+
+  // Start progress timer when story changes
+  useEffect(() => {
+    if (storyGroups.length > 0 && !isLoading) {
+      startProgress();
+      markCurrentStoryAsViewed();
     }
-  };
+    
+    return () => {
+      clearTimer();
+    };
+  }, [currentGroupIndex, currentStoryIndex, storyGroups.length, isLoading, startProgress, markCurrentStoryAsViewed, clearTimer]);
 
   const handleScreenClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const { clientX, currentTarget } = e;
     const { offsetWidth } = currentTarget;
     if (clientX < offsetWidth / 3) {
-      handlePrevStory();
+      goToPrevStory();
     } else {
-      handleNextStory();
+      goToNextStory();
     }
   };
 
@@ -216,9 +301,10 @@ export default function StoryPage() {
         {currentGroup.stories.map((_, index) => (
           <div key={index} className="flex-1 h-1 bg-white/30 rounded-full overflow-hidden">
             <div
-              className="h-full bg-white rounded-full transition-all"
+              className="h-full bg-white rounded-full"
               style={{ 
-                width: `${index === currentStoryIndex ? progress : (index < currentStoryIndex ? 100 : 0)}%` 
+                width: `${index === currentStoryIndex ? progress : (index < currentStoryIndex ? 100 : 0)}%`,
+                transition: index === currentStoryIndex ? 'none' : 'width 0.2s ease-out'
               }}
             />
           </div>

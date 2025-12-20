@@ -71,16 +71,46 @@ function PostSkeleton() {
 let cachedPosts: Post[] | null = null;
 let cachedStories: StoryGroup[] | null = null;
 
+// Function to mark a story as viewed in cache
+export function markStoryAsViewedInCache(storyId: string, userId: string) {
+  if (!cachedStories) return;
+  
+  cachedStories = cachedStories.map(group => {
+    if (group.user.id === userId) {
+      const updatedStories = group.stories.map(s => 
+        s.id === storyId ? { ...s, isViewed: true } : s
+      );
+      const allViewed = updatedStories.every(s => (s as any).isViewed);
+      return { ...group, stories: updatedStories, allViewed };
+    }
+    return group;
+  });
+}
+
+// Sort stories: unviewed first, then viewed
+function sortStories(storyGroups: StoryGroup[]): StoryGroup[] {
+  return [...storyGroups].sort((a, b) => {
+    if (a.allViewed && !b.allViewed) return 1;
+    if (!a.allViewed && b.allViewed) return -1;
+    return 0;
+  });
+}
+
 export default function Home() {
   const { get, post: apiPost } = useApi();
   const [posts, setPosts] = useState<Post[]>(cachedPosts || []);
-  const [stories, setStories] = useState<StoryGroup[]>(cachedStories || []);
+  const [stories, setStories] = useState<StoryGroup[]>(cachedStories ? sortStories(cachedStories) : []);
   const [isLoading, setIsLoading] = useState(!cachedPosts);
 
   useEffect(() => {
     // Only load if no cached data
     if (!cachedPosts) {
       loadData();
+    } else {
+      // Refresh from cache (in case stories were viewed)
+      if (cachedStories) {
+        setStories(sortStories(cachedStories));
+      }
     }
   }, []);
 
@@ -104,7 +134,8 @@ export default function Home() {
     }
 
     if (storiesData) {
-      setStories(storiesData);
+      const sorted = sortStories(storiesData);
+      setStories(sorted);
       cachedStories = storiesData;
     }
     setIsLoading(false);

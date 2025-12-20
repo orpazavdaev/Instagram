@@ -304,3 +304,4 @@ npm run dev
 
 **נבנה עם ❤️ באמצעות Next.js, Prisma, ו-Tailwind CSS**
 
+

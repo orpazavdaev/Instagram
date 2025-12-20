@@ -1,20 +1,43 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { Search, Play } from 'lucide-react';
+import Link from 'next/link';
+import { Search, Play, Heart, MessageCircle } from 'lucide-react';
+import { useApi } from '@/hooks/useApi';
 
 interface Reel {
   id: string;
-  image: string;
+  video: string;
+  thumbnail: string | null;
+  caption: string | null;
+  user: {
+    id: string;
+    username: string;
+    avatar: string | null;
+  };
+  likesCount: number;
+  commentsCount: number;
+  isLiked: boolean;
 }
 
 // Skeleton Component
 function ReelSkeleton() {
-  return <div className="aspect-square bg-gray-200 animate-pulse" />;
+  return (
+    <div className="aspect-[9/16] bg-gray-200 animate-pulse relative">
+      <div className="absolute bottom-2 left-2 right-2 space-y-1">
+        <div className="h-3 bg-gray-300 rounded w-1/2" />
+        <div className="flex gap-2">
+          <div className="h-3 bg-gray-300 rounded w-8" />
+          <div className="h-3 bg-gray-300 rounded w-8" />
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function ReelsPage() {
   const [reels, setReels] = useState<Reel[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { get } = useApi();
 
   useEffect(() => {
     loadReels();
@@ -22,17 +45,18 @@ export default function ReelsPage() {
 
   const loadReels = async () => {
     setIsLoading(true);
-    // Simulate loading - in future this could be real API
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Generate reels
-    const reelsData = Array.from({ length: 30 }, (_, i) => ({
-      id: String(i + 1),
-      image: `https://picsum.photos/seed/reel${i + 1}/300/300`,
-    }));
-    
-    setReels(reelsData);
+    const data = await get<Reel[]>('/api/reels');
+    if (data) {
+      setReels(data);
+    }
     setIsLoading(false);
+  };
+
+  // Format numbers (e.g., 1000 -> 1K)
+  const formatCount = (count: number) => {
+    if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
+    if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
+    return count.toString();
   };
 
   return (
@@ -49,23 +73,51 @@ export default function ReelsPage() {
       <div className="grid grid-cols-3 gap-0.5">
         {isLoading ? (
           // Skeleton grid
-          Array.from({ length: 12 }).map((_, i) => (
+          Array.from({ length: 9 }).map((_, i) => (
             <ReelSkeleton key={i} />
           ))
+        ) : reels.length === 0 ? (
+          <div className="col-span-3 py-20 text-center text-gray-500">
+            <Play className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+            <p>No reels yet</p>
+          </div>
         ) : (
           reels.map((reel) => (
-            <div key={reel.id} className="relative aspect-square group cursor-pointer">
+            <Link 
+              key={reel.id} 
+              href={`/reel/${reel.id}`}
+              className="relative aspect-[9/16] group cursor-pointer bg-black"
+            >
+              {/* Thumbnail or Video Preview */}
               <Image
-                src={reel.image}
-                alt={`Reel ${reel.id}`}
+                src={reel.thumbnail || `https://picsum.photos/seed/${reel.id}/300/533`}
+                alt={reel.caption || 'Reel'}
                 fill
                 className="object-cover"
               />
-              {/* Play icon overlay on hover */}
-              <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <Play className="w-8 h-8 text-white fill-white" />
+              
+              {/* Play icon overlay */}
+              <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                <Play className="w-8 h-8 text-white fill-white opacity-80" />
               </div>
-            </div>
+              
+              {/* Stats overlay */}
+              <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/70 to-transparent">
+                <p className="text-white text-xs font-medium truncate mb-1">
+                  @{reel.user.username}
+                </p>
+                <div className="flex items-center gap-3 text-white text-xs">
+                  <span className="flex items-center gap-1">
+                    <Heart className={`w-3 h-3 ${reel.isLiked ? 'fill-red-500 text-red-500' : ''}`} />
+                    {formatCount(reel.likesCount)}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <MessageCircle className="w-3 h-3" />
+                    {formatCount(reel.commentsCount)}
+                  </span>
+                </div>
+              </div>
+            </Link>
           ))
         )}
       </div>
