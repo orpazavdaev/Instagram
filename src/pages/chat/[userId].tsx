@@ -533,7 +533,7 @@ export default function ChatPage() {
   return (
     <div className="bg-white min-h-screen flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+      <div className="fixed top-0 left-0 right-0 md:left-1/2 md:-translate-x-1/2 md:max-w-[430px] z-20 bg-white flex items-center justify-between px-4 py-3 border-b border-gray-100">
         <div className="flex items-center gap-3">
           <Link href="/messages" className="p-1">
             <ChevronLeft className="w-6 h-6 text-gray-700" />
@@ -571,7 +571,7 @@ export default function ChatPage() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 pb-20">
+      <div className="flex-1 overflow-y-auto p-4 pt-20 pb-20">
         {isLoading ? (
           <>
             <MessageSkeleton isOwn={false} />
