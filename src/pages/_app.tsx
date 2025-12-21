@@ -75,22 +75,8 @@ function AppContent({ Component, pageProps }: AppProps) {
   const isNoNavPage = noNavPages.includes(router.pathname) || 
     noNavPrefixes.some(prefix => router.pathname.startsWith(prefix));
   
-  if (isNoNavPage) {
-    return (
-      <>
-        <Head>
-          <title>Instagram</title>
-          <meta name="description" content="Instagram Clone" />
-          <meta name="viewport" content="width=device-width, initial-scale=1" />
-          <link rel="icon" href="/favicon.ico" />
-        </Head>
-        <Component {...pageProps} />
-      </>
-    );
-  }
-
-  // If not logged in, don't render anything (will redirect)
-  if (!isLoggedIn) {
+  // If not logged in and not on public page, don't render anything (will redirect)
+  if (!isLoggedIn && !publicPages.includes(router.pathname)) {
     return null;
   }
 
@@ -102,11 +88,28 @@ function AppContent({ Component, pageProps }: AppProps) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <div className="bg-white text-gray-900">
-        <main className="max-w-[430px] mx-auto bg-white">
-          <Component {...pageProps} />
-        </main>
-        <BottomNav />
+      
+      {/* Desktop background */}
+      <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 md:py-4">
+        {/* Phone frame container */}
+        <div className="md:max-w-[430px] md:mx-auto md:rounded-[40px] md:shadow-2xl md:overflow-hidden md:border-[8px] md:border-gray-800 md:relative">
+          {/* Phone notch (desktop only) */}
+          <div className="hidden md:block absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-gray-800 rounded-b-2xl z-50" />
+          
+          {/* App content */}
+          <div className="bg-white text-gray-900 min-h-screen md:min-h-[85vh] md:max-h-[85vh] md:overflow-y-auto relative">
+            <Component {...pageProps} />
+          </div>
+          
+          {/* Bottom nav - only for pages that need it */}
+          {!isNoNavPage && isLoggedIn && <BottomNav />}
+        </div>
+        
+        {/* Desktop branding */}
+        <div className="hidden md:flex flex-col items-center mt-6 text-gray-500">
+          <p className="text-sm">Instagram Clone</p>
+          <p className="text-xs mt-1">Best viewed on mobile</p>
+        </div>
       </div>
     </>
   );

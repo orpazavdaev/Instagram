@@ -17,8 +17,8 @@ export default function BottomNav() {
   const { user } = useAuth();
 
   return (
-    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
-      <nav className="bg-neutral-800 rounded-full flex items-center gap-9 px-8 py-4 shadow-lg">
+    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 md:absolute md:bottom-2 md:left-1/2 md:-translate-x-1/2">
+      <nav className="bg-neutral-800 rounded-full flex items-center gap-6 md:gap-4 px-6 md:px-4 py-3 md:py-2 shadow-lg">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;

@@ -611,21 +611,27 @@ export default function StoryPage() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="fixed inset-0 bg-black z-[100] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
-      </div>
+      <>
+        <div className="hidden md:fixed md:inset-0 md:block md:bg-black/80 md:z-[99]" />
+        <div className="fixed inset-0 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[430px] md:h-[85vh] md:rounded-[32px] bg-black z-[100] flex items-center justify-center">
+          <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
+        </div>
+      </>
     );
   }
 
   // No stories
   if (storyGroups.length === 0) {
     return (
-      <div className="fixed inset-0 bg-black z-[100] flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-white mb-4">No stories available</p>
-          <button onClick={() => router.push('/')} className="text-blue-400">Go back</button>
+      <>
+        <div className="hidden md:fixed md:inset-0 md:block md:bg-black/80 md:z-[99]" />
+        <div className="fixed inset-0 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[430px] md:h-[85vh] md:rounded-[32px] bg-black z-[100] flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-white mb-4">No stories available</p>
+            <button onClick={() => router.push('/')} className="text-blue-400">Go back</button>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
@@ -643,15 +649,19 @@ export default function StoryPage() {
   const isOwnStory = currentUser?.id === user.id;
 
   return (
-    <div
-      className="fixed inset-0 bg-black z-[100] flex flex-col select-none"
-      onClick={handleScreenClick}
-      onMouseDown={handleMouseDown}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
-      onTouchStart={(e) => { handleTouchStart(e); pauseProgress(); }}
-      onTouchEnd={(e) => { handleTouchEnd(e); resumeProgress(); }}
-    >
+    <>
+      {/* Desktop background overlay */}
+      <div className="hidden md:fixed md:inset-0 md:block md:bg-black/80 md:z-[99]" onClick={() => router.push('/')} />
+      
+      <div
+        className="fixed inset-0 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[430px] md:h-[85vh] md:rounded-[32px] md:overflow-hidden bg-black z-[100] flex flex-col select-none"
+        onClick={handleScreenClick}
+        onMouseDown={handleMouseDown}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onTouchStart={(e) => { handleTouchStart(e); pauseProgress(); }}
+        onTouchEnd={(e) => { handleTouchEnd(e); resumeProgress(); }}
+      >
       {/* Top gradient for visibility on bright images */}
       <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-black/60 via-black/30 to-transparent z-10 pointer-events-none" />
 
@@ -904,5 +914,6 @@ export default function StoryPage() {
         </div>
       )}
     </div>
+    </>
   );
 }

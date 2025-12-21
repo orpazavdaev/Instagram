@@ -47,12 +47,12 @@ export default function NotificationToast() {
   };
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-[200] flex justify-center pointer-events-none">
+    <div className="fixed top-0 left-0 right-0 z-[200] flex justify-center pointer-events-none md:top-4 md:left-1/2 md:-translate-x-1/2 md:right-auto md:w-[414px]">
       <Link 
         href="/activity"
         className={`
           pointer-events-auto
-          mx-4 mt-4 max-w-md w-full
+          mx-4 mt-4 md:mt-8 max-w-[380px] w-full
           bg-white rounded-2xl shadow-2xl border border-gray-100
           transform transition-all duration-300 ease-out
           ${isVisible && !isLeaving ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}

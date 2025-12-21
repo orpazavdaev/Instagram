@@ -396,28 +396,38 @@ export default function ReelPage() {
 
   if (isLoading) {
     return (
-      <div className="fixed inset-0 bg-black z-50 flex items-center justify-center">
-        <div className="text-white">Loading...</div>
-      </div>
+      <>
+        <div className="hidden md:fixed md:inset-0 md:block md:bg-black/80 md:z-40" />
+        <div className="fixed inset-0 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[430px] md:h-[85vh] md:rounded-[32px] bg-black z-50 flex items-center justify-center">
+          <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
+        </div>
+      </>
     );
   }
 
   if (reels.length === 0) {
     return (
-      <div className="fixed inset-0 bg-black z-50 flex items-center justify-center">
-        <div className="text-center text-white">
-          <p className="mb-4">No reels found</p>
-          <button onClick={() => router.back()} className="text-blue-400">
-            Go back
-          </button>
+      <>
+        <div className="hidden md:fixed md:inset-0 md:block md:bg-black/80 md:z-40" />
+        <div className="fixed inset-0 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[430px] md:h-[85vh] md:rounded-[32px] bg-black z-50 flex items-center justify-center">
+          <div className="text-center text-white">
+            <p className="mb-4">No reels found</p>
+            <button onClick={() => router.back()} className="text-blue-400">
+              Go back
+            </button>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="fixed inset-0 bg-black z-50">
-      {/* Top bar */}
+    <>
+      {/* Desktop background overlay */}
+      <div className="hidden md:fixed md:inset-0 md:block md:bg-black/80 md:z-40" onClick={() => router.push('/reels')} />
+      
+      <div className="fixed inset-0 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[430px] md:h-[85vh] md:rounded-[32px] md:overflow-hidden bg-black z-50">
+        {/* Top bar */}
       <div className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between z-20 bg-gradient-to-b from-black/50 to-transparent">
         <button onClick={() => router.push('/reels')} className="text-white">
           <ArrowLeft className="w-6 h-6" />
@@ -626,5 +636,6 @@ export default function ReelPage() {
         </div>
       )}
     </div>
+    </>
   );
 }
