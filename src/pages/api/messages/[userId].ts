@@ -64,7 +64,7 @@ async function sendMessage(
   res: NextApiResponse
 ) {
   try {
-    const { text } = req.body;
+    const { text, type = 'text' } = req.body;
 
     if (!text) {
       return res.status(400).json({ error: 'Text is required' });
@@ -73,6 +73,7 @@ async function sendMessage(
     const message = await prisma.message.create({
       data: {
         text,
+        type,
         senderId: userId,
         receiverId: partnerId,
       },

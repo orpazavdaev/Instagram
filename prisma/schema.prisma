@@ -170,6 +170,7 @@ model HighlightStory {
 model Message {
   id        String   @id @default(cuid())
   text      String
+  type      String   @default("text")
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
 

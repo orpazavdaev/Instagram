@@ -1,10 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Plus } from 'lucide-react';
+import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Plus, X, Search } from 'lucide-react';
 import Avatar from '@/components/shared/Avatar';
 import { useApi } from '@/hooks/useApi';
 import { useAuth } from '@/context/AuthContext';
+
+interface ShareUser {
+  id: string;
+  username: string;
+  avatar: string;
+  fullName: string;
+}
 
 interface Post {
   id: string;
@@ -118,6 +125,13 @@ export default function Home() {
   const [stories, setStories] = useState<StoryGroup[]>(cachedStories ? sortStories(cachedStories) : []);
   const [isLoading, setIsLoading] = useState(!cachedPosts);
   const [myStory, setMyStory] = useState<StoryGroup | null>(null);
+  
+  // Share modal state
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [sharePost, setSharePost] = useState<Post | null>(null);
+  const [shareUsers, setShareUsers] = useState<ShareUser[]>([]);
+  const [shareSearch, setShareSearch] = useState('');
+  const [sendingTo, setSendingTo] = useState<string | null>(null);
 
   const refreshFromCache = useCallback(() => {
     if (cachedStories) {
@@ -192,6 +206,51 @@ export default function Home() {
     // Send to server (no need to wait or refresh)
     await apiPost<{ liked: boolean }>(`/api/posts/${postId}/like`, {});
   };
+
+  // Open share modal
+  const openShareModal = async (post: Post) => {
+    setSharePost(post);
+    setShowShareModal(true);
+    setShareSearch('');
+    
+    // Load users if not loaded
+    if (shareUsers.length === 0) {
+      const users = await get<ShareUser[]>('/api/users');
+      if (users) {
+        setShareUsers(users.filter(u => u.id !== currentUser?.id));
+      }
+    }
+  };
+
+  // Send post to user
+  const sendPostToUser = async (userId: string) => {
+    if (!sharePost) return;
+    
+    setSendingTo(userId);
+    
+    // Create message with post data as JSON
+    const postData = {
+      type: 'shared_post',
+      postId: sharePost.id,
+      image: sharePost.image,
+      username: sharePost.user.username,
+      caption: sharePost.caption,
+    };
+    
+    await apiPost(`/api/messages/${userId}`, {
+      text: JSON.stringify(postData),
+      type: 'post',
+    });
+    
+    setSendingTo(null);
+    setShowShareModal(false);
+    setSharePost(null);
+  };
+
+  const filteredShareUsers = shareUsers.filter(u =>
+    u.username.toLowerCase().includes(shareSearch.toLowerCase()) ||
+    u.fullName?.toLowerCase().includes(shareSearch.toLowerCase())
+  );
 
   const currentUserId = typeof window !== 'undefined' 
     ? JSON.parse(localStorage.getItem('user') || '{}').id 
@@ -345,7 +404,7 @@ export default function Home() {
                         <MessageCircle className="w-6 h-6" />
                         <span className="text-sm">{post.commentsCount}</span>
                       </Link>
-                      <button>
+                      <button onClick={() => openShareModal(post)}>
                         <Send className="w-6 h-6" />
                       </button>
                     </div>
@@ -370,6 +429,79 @@ export default function Home() {
           </div>
         )}
       </div>
+
+      {/* Share Modal */}
+      {showShareModal && sharePost && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center">
+          <div className="bg-white w-full max-w-[430px] rounded-t-2xl max-h-[70vh] flex flex-col animate-slide-up">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-4 border-b">
+              <span className="font-semibold">Share to...</span>
+              <button onClick={() => { setShowShareModal(false); setSharePost(null); }}>
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Post Preview */}
+            <div className="flex items-center gap-3 p-4 border-b bg-gray-50">
+              <div className="w-12 h-12 relative rounded overflow-hidden flex-shrink-0">
+                <Image src={sharePost.image} alt="Post" fill className="object-cover" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm">{sharePost.user.username}</p>
+                <p className="text-xs text-gray-500 truncate">{sharePost.caption}</p>
+              </div>
+            </div>
+
+            {/* Search */}
+            <div className="p-3 border-b">
+              <div className="flex items-center gap-2 bg-gray-100 rounded-lg px-3 py-2">
+                <Search className="w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search"
+                  value={shareSearch}
+                  onChange={(e) => setShareSearch(e.target.value)}
+                  className="flex-1 bg-transparent text-sm outline-none"
+                />
+              </div>
+            </div>
+
+            {/* Users List */}
+            <div className="flex-1 overflow-y-auto">
+              {filteredShareUsers.length === 0 ? (
+                <p className="text-center text-gray-500 py-8">No users found</p>
+              ) : (
+                filteredShareUsers.map((user) => (
+                  <div 
+                    key={user.id}
+                    className="flex items-center justify-between px-4 py-3 hover:bg-gray-50"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Avatar src={user.avatar || 'https://i.pravatar.cc/150'} alt={user.username} size="md" />
+                      <div>
+                        <p className="font-semibold text-sm">{user.username}</p>
+                        <p className="text-xs text-gray-500">{user.fullName}</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => sendPostToUser(user.id)}
+                      disabled={sendingTo === user.id}
+                      className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
+                        sendingTo === user.id
+                          ? 'bg-gray-200 text-gray-500'
+                          : 'bg-blue-500 text-white hover:bg-blue-600'
+                      }`}
+                    >
+                      {sendingTo === user.id ? 'Sent!' : 'Send'}
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

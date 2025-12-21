@@ -35,6 +35,21 @@ function getTimeAgo(date: string): string {
   return `${Math.floor(seconds / 86400)}d`;
 }
 
+function formatMessagePreview(text: string): string {
+  if (text.startsWith('data:audio')) return '🎤 Voice message';
+  if (text.startsWith('data:image')) return '📷 Photo';
+  // Check for shared content
+  try {
+    const data = JSON.parse(text);
+    if (data.type === 'shared_post') return '📸 Shared a post';
+    if (data.type === 'shared_story') return '📖 Shared a story';
+    if (data.type === 'shared_reel') return '🎬 Shared a reel';
+  } catch {
+    // Not JSON
+  }
+  return text;
+}
+
 // Skeleton Component
 function ConversationSkeleton() {
   return (
@@ -173,9 +188,9 @@ export default function MessagesPage() {
               />
               <div className="flex-1">
                 <p className="font-semibold text-sm">{conv.user.username}</p>
-                <p className="text-xs text-gray-500">
+<p className="text-xs text-gray-500">
                   <span className={conv.unread ? 'font-semibold text-gray-900' : ''}>
-                    {conv.lastMessage.text}
+                    {formatMessagePreview(conv.lastMessage.text)}
                   </span>
                   {' • '}
                   {getTimeAgo(conv.lastMessage.createdAt)}

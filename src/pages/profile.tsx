@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Settings, Grid3X3, UserSquare } from 'lucide-react';
+import { useRouter } from 'next/router';
+import { Settings, Grid3X3, UserSquare, Share2, Check } from 'lucide-react';
 import Avatar from '@/components/shared/Avatar';
 import Button from '@/components/shared/Button';
 import StoryHighlight from '@/components/profile/StoryHighlight';
@@ -91,12 +92,14 @@ function PostsGridSkeleton() {
 }
 
 export default function ProfilePage() {
+  const router = useRouter();
   const { user } = useAuth();
   const { get } = useApi();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasStory, setHasStory] = useState(false);
   const [storyViewed, setStoryViewed] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     loadProfile();
@@ -128,6 +131,34 @@ export default function ProfilePage() {
     }
 
     setIsLoading(false);
+  };
+
+  const handleShareProfile = async () => {
+    const profileUrl = `${window.location.origin}/user/${profile?.username}`;
+    
+    // Try Web Share API first (mobile)
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${profile?.fullName} (@${profile?.username})`,
+          text: `Check out ${profile?.username}'s profile on Instagram`,
+          url: profileUrl,
+        });
+        return;
+      } catch {
+        // User cancelled or error
+      }
+    }
+    
+    // Fallback: copy to clipboard
+    try {
+      await navigator.clipboard.writeText(profileUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard failed
+      alert(`Profile link: ${profileUrl}`);
+    }
   };
 
   const highlights = profile?.highlights?.length 
@@ -193,8 +224,18 @@ export default function ProfilePage() {
 
             {/* Action Buttons */}
             <div className="flex gap-2 mb-6">
-              <Button variant="secondary" fullWidth>Edit profile</Button>
-              <Button variant="secondary" fullWidth>Share Profile</Button>
+              <Button variant="secondary" fullWidth onClick={() => router.push('/edit-profile')}>
+                Edit profile
+              </Button>
+              <Button variant="secondary" fullWidth onClick={handleShareProfile}>
+                {copied ? (
+                  <span className="flex items-center justify-center gap-1">
+                    <Check className="w-4 h-4" /> Copied!
+                  </span>
+                ) : (
+                  'Share Profile'
+                )}
+              </Button>
             </div>
 
             {/* Story Highlights */}

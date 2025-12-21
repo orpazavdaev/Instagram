@@ -2,10 +2,18 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
 import Link from 'next/link';
-import { X, MoreHorizontal, Send, Heart, Volume2, VolumeX, Pause } from 'lucide-react';
+import { X, MoreHorizontal, Send, Heart, Volume2, VolumeX, Pause, Search } from 'lucide-react';
 import Avatar from '@/components/shared/Avatar';
 import { useApi } from '@/hooks/useApi';
+import { useAuth } from '@/context/AuthContext';
 import { markStoryAsViewedInCache } from './index';
+
+interface ShareUser {
+  id: string;
+  username: string;
+  avatar: string;
+  fullName: string;
+}
 
 interface Story {
   id: string;
@@ -13,6 +21,7 @@ interface Story {
   music?: string;
   createdAt: string;
   isViewed?: boolean;
+  isLiked?: boolean;
 }
 
 interface StoryGroup {
@@ -44,6 +53,7 @@ export default function StoryPage() {
   const router = useRouter();
   const { userId } = router.query;
   const { get, post } = useApi();
+  const { user: currentUser } = useAuth();
   
   // Story data
   const [storyGroups, setStoryGroups] = useState<StoryGroup[]>([]);
@@ -56,6 +66,13 @@ export default function StoryPage() {
   const [likedStories, setLikedStories] = useState<Set<string>>(new Set());
   const [isMuted, setIsMuted] = useState(true);
   const [isPaused, setIsPaused] = useState(false);
+  const isPausedRef = useRef(false);
+  
+  // Share modal state
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareUsers, setShareUsers] = useState<ShareUser[]>([]);
+  const [shareSearch, setShareSearch] = useState('');
+  const [sendingTo, setSendingTo] = useState<string | null>(null);
   
   // Mode: false = unviewed stories mode, true = viewed stories mode
   const [isViewedMode, setIsViewedMode] = useState(false);
@@ -82,8 +99,23 @@ export default function StoryPage() {
 
   // Like story
   const handleLikeStory = async (storyId: string) => {
+    // Optimistic update - toggle immediately
+    const wasLiked = likedStories.has(storyId);
+    setLikedStories(prev => {
+      const newSet = new Set(prev);
+      if (wasLiked) {
+        newSet.delete(storyId);
+      } else {
+        newSet.add(storyId);
+      }
+      return newSet;
+    });
+    
+    // Send to server
     const result = await post<{ liked: boolean }>(`/api/stories/${storyId}/like`, {});
-    if (result) {
+    
+    // If server response differs, sync with server
+    if (result && result.liked !== !wasLiked) {
       setLikedStories(prev => {
         const newSet = new Set(prev);
         if (result.liked) newSet.add(storyId);
@@ -92,6 +124,68 @@ export default function StoryPage() {
       });
     }
   };
+
+  // Open share modal
+  const openShareModal = async () => {
+    clearTimer(); // Stop the progress timer
+    setIsPaused(true);
+    isPausedRef.current = true;
+    setShowShareModal(true);
+    setShareSearch('');
+    
+    // Pause video if playing
+    if (videoRef.current) {
+      videoRef.current.pause();
+    }
+    
+    if (shareUsers.length === 0) {
+      const users = await get<ShareUser[]>('/api/users');
+      if (users) {
+        setShareUsers(users.filter(u => u.id !== currentUser?.id));
+      }
+    }
+  };
+
+  // Close share modal
+  const closeShareModal = () => {
+    setShowShareModal(false);
+    setIsPaused(false);
+    isPausedRef.current = false;
+    
+    // Resume video if it's a video story
+    if (videoRef.current) {
+      videoRef.current.play().catch(() => {});
+    }
+  };
+
+  // Send story to user
+  const sendStoryToUser = async (targetUserId: string) => {
+    const currentGroup = storyGroups[currentGroupIndex];
+    const currentStory = currentGroup?.stories[currentStoryIndex];
+    if (!currentStory || !currentGroup) return;
+    
+    setSendingTo(targetUserId);
+    
+    const storyData = {
+      type: 'shared_story',
+      storyId: currentStory.id,
+      image: currentStory.image,
+      username: currentGroup.user.username,
+    };
+    
+    await post(`/api/messages/${targetUserId}`, {
+      text: JSON.stringify(storyData),
+      type: 'story',
+    });
+    
+    setSendingTo(null);
+    closeShareModal();
+  };
+
+  const filteredShareUsers = shareUsers.filter(u =>
+    u.username.toLowerCase().includes(shareSearch.toLowerCase()) ||
+    u.fullName?.toLowerCase().includes(shareSearch.toLowerCase())
+  );
 
   // Timer control
   const clearTimer = useCallback(() => {
@@ -278,13 +372,17 @@ export default function StoryPage() {
 
   // Progress timer
   const startProgress = useCallback((duration: number = STORY_DURATION) => {
-    if (isPaused) return;
+    if (isPausedRef.current) return;
     clearTimer();
     setProgress(0);
     
     const increment = 100 / (duration / 50);
     
     intervalRef.current = setInterval(() => {
+      // Check if paused during interval
+      if (isPausedRef.current) {
+        return;
+      }
       setProgress((prev) => {
         if (prev >= 100) {
           goToNextStory();
@@ -293,17 +391,21 @@ export default function StoryPage() {
         return prev + increment;
       });
     }, 50);
-  }, [clearTimer, goToNextStory, isPaused]);
+  }, [clearTimer, goToNextStory]);
 
   // Pause/Resume
   const pauseProgress = useCallback(() => {
     setIsPaused(true);
+    isPausedRef.current = true;
     clearTimer();
     if (videoRef.current) videoRef.current.pause();
   }, [clearTimer]);
 
   const resumeProgress = useCallback(() => {
     setIsPaused(false);
+    isPausedRef.current = false;
+    clearTimer();
+    
     const currentGroup = storyGroupsRef.current[currentGroupIndexRef.current];
     const currentStory = currentGroup?.stories[currentStoryIndexRef.current];
     
@@ -315,6 +417,7 @@ export default function StoryPage() {
       const increment = 100 / (remainingTime / 50);
       
       intervalRef.current = setInterval(() => {
+        if (isPausedRef.current) return;
         setProgress((prev) => {
           if (prev >= 100) {
             goToNextStory();
@@ -324,7 +427,7 @@ export default function StoryPage() {
         });
       }, 50);
     }
-  }, [goToNextStory]);
+  }, [goToNextStory, clearTimer]);
 
   // Mark story as viewed
   const markCurrentStoryAsViewed = useCallback(async () => {
@@ -372,6 +475,17 @@ export default function StoryPage() {
       if (data && data.length > 0) {
         setStoryGroups(data);
         storyGroupsRef.current = data;
+        
+        // Initialize liked stories from fetched data
+        const likedIds = new Set<string>();
+        data.forEach(group => {
+          group.stories.forEach(story => {
+            if (story.isLiked) {
+              likedIds.add(story.id);
+            }
+          });
+        });
+        setLikedStories(likedIds);
       }
       setIsLoading(false);
     };
@@ -409,9 +523,9 @@ export default function StoryPage() {
     }
   }, [userId, storyGroups.length, isLoading]);
 
-  // Start progress when story changes
+  // Start progress when story changes (not when paused state changes)
   useEffect(() => {
-    if (storyGroups.length > 0 && !isLoading && !isPaused) {
+    if (storyGroups.length > 0 && !isLoading) {
       const currentGroup = storyGroups[currentGroupIndex];
       const currentStory = currentGroup?.stories[currentStoryIndex];
       
@@ -421,7 +535,8 @@ export default function StoryPage() {
       markCurrentStoryAsViewed();
     }
     return () => clearTimer();
-  }, [currentGroupIndex, currentStoryIndex, storyGroups.length, isLoading, isPaused, startProgress, markCurrentStoryAsViewed, clearTimer]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentGroupIndex, currentStoryIndex, storyGroups.length, isLoading]);
 
   // Touch handlers
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -609,10 +724,85 @@ export default function StoryPage() {
         <button className="text-white" onClick={() => currentStory && handleLikeStory(currentStory.id)}>
           <Heart className={`w-6 h-6 ${likedStories.has(currentStory?.id || '') ? 'text-red-500 fill-red-500' : ''}`} />
         </button>
-        <button className="text-white">
+        <button className="text-white" onClick={openShareModal}>
           <Send className="w-6 h-6" />
         </button>
       </div>
+
+      {/* Share Modal */}
+      {showShareModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center">
+          <div className="bg-white w-full max-w-[430px] rounded-t-2xl max-h-[70vh] flex flex-col animate-slide-up">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-4 border-b">
+              <span className="font-semibold">Share to...</span>
+              <button onClick={closeShareModal}>
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Story Preview */}
+            <div className="flex items-center gap-3 p-4 border-b bg-gray-50">
+              <div className="w-12 h-12 relative rounded overflow-hidden flex-shrink-0">
+                {currentStory && (
+                  <Image src={currentStory.image} alt="Story" fill className="object-cover" />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm">{currentGroup?.user.username}'s story</p>
+                <p className="text-xs text-gray-500">Share this story</p>
+              </div>
+            </div>
+
+            {/* Search */}
+            <div className="p-3 border-b">
+              <div className="flex items-center gap-2 bg-gray-100 rounded-lg px-3 py-2">
+                <Search className="w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search"
+                  value={shareSearch}
+                  onChange={(e) => setShareSearch(e.target.value)}
+                  className="flex-1 bg-transparent text-sm outline-none"
+                />
+              </div>
+            </div>
+
+            {/* Users List */}
+            <div className="flex-1 overflow-y-auto">
+              {filteredShareUsers.length === 0 ? (
+                <p className="text-center text-gray-500 py-8">No users found</p>
+              ) : (
+                filteredShareUsers.map((user) => (
+                  <div 
+                    key={user.id}
+                    className="flex items-center justify-between px-4 py-3 hover:bg-gray-50"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Avatar src={user.avatar || 'https://i.pravatar.cc/150'} alt={user.username} size="md" />
+                      <div>
+                        <p className="font-semibold text-sm">{user.username}</p>
+                        <p className="text-xs text-gray-500">{user.fullName}</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => sendStoryToUser(user.id)}
+                      disabled={sendingTo === user.id}
+                      className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
+                        sendingTo === user.id
+                          ? 'bg-gray-200 text-gray-500'
+                          : 'bg-blue-500 text-white hover:bg-blue-600'
+                      }`}
+                    >
+                      {sendingTo === user.id ? 'Sent!' : 'Send'}
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

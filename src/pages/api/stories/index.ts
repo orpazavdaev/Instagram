@@ -59,6 +59,10 @@ async function getStories(req: NextApiRequest, res: NextApiResponse) {
           where: { userId: currentUserId },
           select: { userId: true },
         } : false,
+        likes: currentUserId ? {
+          where: { userId: currentUserId },
+          select: { userId: true },
+        } : false,
       },
     });
 
@@ -77,6 +81,7 @@ async function getStories(req: NextApiRequest, res: NextApiResponse) {
       
       // isViewed is based on actual view records for ALL users (including own stories)
       const isViewed = currentUserId && story.views ? story.views.length > 0 : false;
+      const isLiked = currentUserId && story.likes ? story.likes.length > 0 : false;
       
       acc[userId].stories.push({
         id: story.id,
@@ -84,12 +89,13 @@ async function getStories(req: NextApiRequest, res: NextApiResponse) {
         music: story.music,
         createdAt: story.createdAt.toISOString(),
         isViewed,
+        isLiked,
       });
       
       return acc;
     }, {} as Record<string, { 
       user: { id: string; username: string; avatar: string | null }; 
-      stories: Array<{ id: string; image: string; music: string | null; createdAt: string; isViewed: boolean }>;
+      stories: Array<{ id: string; image: string; music: string | null; createdAt: string; isViewed: boolean; isLiked: boolean }>;
       isOwnStories: boolean;
     }>);
 

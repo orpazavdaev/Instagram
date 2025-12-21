@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Search, Play, Heart, MessageCircle } from 'lucide-react';
+import { Play, Heart, MessageCircle } from 'lucide-react';
 import { useApi } from '@/hooks/useApi';
 
 interface Reel {
@@ -60,15 +60,7 @@ export default function ReelsPage() {
   };
 
   return (
-    <div className="bg-white pb-20">
-      {/* Search Bar */}
-      <div className="px-4 py-3">
-        <div className="flex items-center gap-2 bg-gray-100 rounded-lg px-4 py-2.5">
-          <span className="text-gray-400 text-sm">search</span>
-          <Search className="w-4 h-4 text-gray-400 ml-auto" />
-        </div>
-      </div>
-
+    <div className="bg-white' min-h-screen">
       {/* Reels Grid */}
       <div className="grid grid-cols-3 gap-0.5">
         {isLoading ? (
