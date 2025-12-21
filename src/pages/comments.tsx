@@ -164,7 +164,7 @@ export default function CommentsPage() {
                   <Heart 
                     className={`w-4 h-4 ${likedComments.has(comment.id) ? 'text-red-500 fill-red-500' : 'text-gray-400'}`} 
                   />
-                </button>
+              </button>
                 {(likeCounts[comment.id] || 0) > 0 && (
                   <span className="text-xs text-gray-400">
                     {likeCounts[comment.id]}

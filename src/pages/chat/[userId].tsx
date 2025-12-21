@@ -48,11 +48,10 @@ type SharedContent = SharedPost | SharedStory | SharedReel;
 function parseSharedContent(text: string): SharedContent | null {
   try {
     const data = JSON.parse(text);
-    console.log('Parsed shared content:', data);
     if (data.type === 'shared_post' || data.type === 'shared_story' || data.type === 'shared_reel') {
       return data as SharedContent;
     }
-  } catch (e) {
+  } catch {
     // Not shared content - not JSON or parsing error
   }
   return null;
@@ -212,7 +211,6 @@ export default function ChatPage() {
     ]);
     
     if (messagesData) {
-      console.log('Loaded messages:', messagesData);
       setMessages(messagesData);
     }
     if (users) {
@@ -490,13 +488,15 @@ export default function ChatPage() {
                     if (sharedContent.type === 'shared_post') {
                       // Shared Post
                       return (
-                        <Link href={`/post/${sharedContent.postId}`} className="block max-w-[250px]">
+                        <Link href={`/post/${sharedContent.postId}`} className="block w-[200px]">
                           <div className={`rounded-2xl overflow-hidden border ${isOwn ? 'border-blue-400' : 'border-gray-200'}`}>
-                            <div className="relative aspect-square w-full">
+                            <div className="relative w-[200px] h-[200px]">
                               <NextImage
                                 src={sharedContent.image}
                                 alt="Shared post"
                                 fill
+                                sizes="200px"
+                                unoptimized
                                 className="object-cover"
                               />
                             </div>
@@ -513,36 +513,41 @@ export default function ChatPage() {
                     if (sharedContent.type === 'shared_story') {
                       // Shared Story
                       return (
-                        <div className="max-w-[200px]">
+                        <Link href={`/story?userId=${sharedContent.username}`} className="block w-[150px]">
                           <div className={`rounded-2xl overflow-hidden border ${isOwn ? 'border-blue-400' : 'border-gray-200'}`}>
-                            <div className="relative aspect-[9/16] w-full">
+                            <div className="relative w-[150px] h-[267px] bg-gray-900">
                               <NextImage
                                 src={sharedContent.image}
                                 alt="Shared story"
                                 fill
+                                sizes="150px"
+                                unoptimized
                                 className="object-cover"
                               />
                               <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                               <div className="absolute bottom-2 left-2 right-2">
                                 <p className="text-white font-semibold text-sm">@{sharedContent.username}</p>
                                 <p className="text-white/80 text-xs">Story</p>
+                                <p className="text-blue-300 text-xs mt-1">Tap to view story</p>
                               </div>
                             </div>
                           </div>
-                        </div>
+                        </Link>
                       );
                     }
                     
                     if (sharedContent.type === 'shared_reel') {
                       // Shared Reel
                       return (
-                        <Link href={`/reel/${sharedContent.reelId}`} className="block max-w-[200px]">
+                        <Link href={`/reel/${sharedContent.reelId}`} className="block w-[150px]">
                           <div className={`rounded-2xl overflow-hidden border ${isOwn ? 'border-blue-400' : 'border-gray-200'}`}>
-                            <div className="relative aspect-[9/16] w-full bg-black">
+                            <div className="relative w-[150px] h-[267px] bg-black">
                               <NextImage
                                 src={sharedContent.thumbnail}
                                 alt="Shared reel"
                                 fill
+                                sizes="150px"
+                                unoptimized
                                 className="object-cover"
                               />
                               <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
