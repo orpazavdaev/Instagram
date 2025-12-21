@@ -27,6 +27,7 @@ interface Post {
   likesCount: number;
   commentsCount: number;
   likedByUser: string[];
+  isSaved?: boolean;
 }
 
 interface Story {
@@ -250,6 +251,29 @@ export default function Home() {
     setShowDeleteConfirm(false);
     setDeletePostId(null);
     setOpenMenuPostId(null);
+  };
+
+  // Save/unsave post
+  const handleSave = async (postId: string) => {
+    if (!currentUserId) return;
+    
+    // Optimistic update
+    setPosts(prevPosts => {
+      const updatedPosts = prevPosts.map(post => {
+        if (post.id === postId) {
+          return {
+            ...post,
+            isSaved: !post.isSaved,
+          };
+        }
+        return post;
+      });
+      cachedPosts = updatedPosts;
+      return updatedPosts;
+    });
+
+    // Send to server
+    await apiPost<{ saved: boolean }>(`/api/posts/${postId}/save`, {});
   };
 
   // Open share modal
@@ -487,8 +511,8 @@ export default function Home() {
                         <Send className="w-6 h-6" />
                       </button>
                     </div>
-                    <button>
-                      <Bookmark className="w-6 h-6" />
+                    <button onClick={() => handleSave(post.id)}>
+                      <Bookmark className={`w-6 h-6 ${post.isSaved ? 'fill-black' : ''}`} />
                     </button>
                   </div>
 

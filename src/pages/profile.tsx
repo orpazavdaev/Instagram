@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/router';
-import { Settings, Grid3X3, UserSquare, Share2, Check } from 'lucide-react';
+import { Settings, Grid3X3, UserSquare, Share2, Check, Bookmark } from 'lucide-react';
 import Avatar from '@/components/shared/Avatar';
 import Button from '@/components/shared/Button';
 import StoryHighlight from '@/components/profile/StoryHighlight';
@@ -30,6 +31,17 @@ interface StoryGroup {
   };
   stories: Array<{ id: string; image: string }>;
   allViewed: boolean;
+}
+
+interface SavedPost {
+  id: string;
+  image: string;
+  caption: string;
+  user: {
+    id: string;
+    username: string;
+    avatar: string;
+  };
 }
 
 // Skeleton Components
@@ -100,6 +112,9 @@ export default function ProfilePage() {
   const [hasStory, setHasStory] = useState(false);
   const [storyViewed, setStoryViewed] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [activeTab, setActiveTab] = useState<'posts' | 'saved'>('posts');
+  const [savedPosts, setSavedPosts] = useState<SavedPost[]>([]);
+  const [savedLoading, setSavedLoading] = useState(false);
 
   useEffect(() => {
     loadProfile();
@@ -131,6 +146,24 @@ export default function ProfilePage() {
     }
 
     setIsLoading(false);
+  };
+
+  const loadSavedPosts = async () => {
+    if (savedPosts.length > 0) return; // Already loaded
+    
+    setSavedLoading(true);
+    const data = await get<SavedPost[]>('/api/saved-posts');
+    if (data) {
+      setSavedPosts(data);
+    }
+    setSavedLoading(false);
+  };
+
+  const handleTabChange = (tab: 'posts' | 'saved') => {
+    setActiveTab(tab);
+    if (tab === 'saved') {
+      loadSavedPosts();
+    }
   };
 
   const handleShareProfile = async () => {
@@ -254,24 +287,62 @@ export default function ProfilePage() {
 
       {/* Tabs */}
       <div className="flex border-t border-gray-200">
-        <button className="flex-1 py-3 flex justify-center border-b-2 border-gray-900">
+        <button 
+          onClick={() => handleTabChange('posts')}
+          className={`flex-1 py-3 flex justify-center border-b-2 ${activeTab === 'posts' ? 'border-gray-900' : 'border-transparent text-gray-400'}`}
+        >
           <Grid3X3 className="w-6 h-6" />
         </button>
-        <button className="flex-1 py-3 flex justify-center text-gray-400">
-          <UserSquare className="w-6 h-6" />
+        <button 
+          onClick={() => handleTabChange('saved')}
+          className={`flex-1 py-3 flex justify-center border-b-2 ${activeTab === 'saved' ? 'border-gray-900' : 'border-transparent text-gray-400'}`}
+        >
+          <Bookmark className="w-6 h-6" />
         </button>
       </div>
 
       {/* Posts Grid */}
-      {isLoading ? (
-        <PostsGridSkeleton />
-      ) : profile?.posts && profile.posts.length > 0 ? (
-        <PostsGrid posts={profile.posts} username={profile.username} />
-      ) : (
-        <div className="text-center py-12 text-gray-400">
-          <Grid3X3 className="w-12 h-12 mx-auto mb-2" />
-          <p>No posts yet</p>
-        </div>
+      {activeTab === 'posts' && (
+        isLoading ? (
+          <PostsGridSkeleton />
+        ) : profile?.posts && profile.posts.length > 0 ? (
+          <PostsGrid posts={profile.posts} username={profile.username} />
+        ) : (
+          <div className="text-center py-12 text-gray-400">
+            <Grid3X3 className="w-12 h-12 mx-auto mb-2" />
+            <p>No posts yet</p>
+          </div>
+        )
+      )}
+
+      {/* Saved Posts Grid */}
+      {activeTab === 'saved' && (
+        savedLoading ? (
+          <PostsGridSkeleton />
+        ) : savedPosts.length > 0 ? (
+          <div className="grid grid-cols-3 gap-0.5">
+            {savedPosts.map((post) => (
+              <Link
+                key={post.id}
+                href={`/post/${post.id}`}
+                className="relative aspect-square"
+              >
+                <Image
+                  src={post.image}
+                  alt={`Saved post ${post.id}`}
+                  fill
+                  className="object-cover"
+                />
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12 text-gray-400">
+            <Bookmark className="w-12 h-12 mx-auto mb-2" />
+            <p>No saved posts yet</p>
+            <p className="text-sm mt-1">Save posts to see them here</p>
+          </div>
+        )
       )}
     </div>
   );
