@@ -613,8 +613,35 @@ export default function StoryPage() {
     return (
       <>
         <div className="hidden md:fixed md:inset-0 md:block md:bg-black/80 md:z-[99]" />
-        <div className="fixed inset-0 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[430px] md:h-[85vh] md:rounded-[32px] bg-black z-[100] flex items-center justify-center">
-          <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
+        <div className="fixed inset-0 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[430px] md:h-[85vh] md:rounded-[32px] bg-gradient-to-b from-gray-800 to-gray-900 z-[100] flex flex-col overflow-hidden">
+          {/* Shimmer overlay */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full animate-[shimmer_1.5s_infinite]" />
+          
+          {/* Progress bars skeleton */}
+          <div className="flex gap-0.5 p-2 pt-3">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="flex-1 h-0.5 bg-white/20 rounded-full" />
+            ))}
+          </div>
+          
+          {/* Header skeleton */}
+          <div className="flex items-center gap-3 px-4 py-3">
+            <div className="w-8 h-8 rounded-full bg-white/20" />
+            <div className="flex-1">
+              <div className="h-3 w-20 bg-white/20 rounded mb-1" />
+              <div className="h-2 w-12 bg-white/10 rounded" />
+            </div>
+          </div>
+          
+          {/* Center loading spinner */}
+          <div className="flex-1 flex items-center justify-center">
+            <div className="w-10 h-10 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          </div>
+          
+          {/* Bottom bar skeleton */}
+          <div className="p-4">
+            <div className="h-10 bg-white/10 rounded-full" />
+          </div>
         </div>
       </>
     );

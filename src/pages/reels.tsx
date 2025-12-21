@@ -22,12 +22,21 @@ interface Reel {
 // Skeleton Component
 function ReelSkeleton() {
   return (
-    <div className="aspect-[9/16] bg-gray-200 animate-pulse relative">
-      <div className="absolute bottom-2 left-2 right-2 space-y-1">
-        <div className="h-3 bg-gray-300 rounded w-1/2" />
-        <div className="flex gap-2">
-          <div className="h-3 bg-gray-300 rounded w-8" />
-          <div className="h-3 bg-gray-300 rounded w-8" />
+    <div className="aspect-[9/16] bg-gradient-to-b from-gray-800 to-gray-900 animate-pulse relative overflow-hidden">
+      {/* Shimmer effect */}
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full animate-[shimmer_1.5s_infinite]" />
+      
+      {/* Play icon placeholder */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="w-12 h-12 rounded-full bg-white/10" />
+      </div>
+      
+      {/* Bottom content placeholder */}
+      <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/50 to-transparent">
+        <div className="h-3 bg-white/20 rounded w-1/2 mb-2" />
+        <div className="flex gap-3">
+          <div className="h-3 bg-white/20 rounded w-10" />
+          <div className="h-3 bg-white/20 rounded w-10" />
         </div>
       </div>
     </div>
@@ -60,12 +69,12 @@ export default function ReelsPage() {
   };
 
   return (
-    <div className="bg-white' min-h-screen">
+    <div className="bg-black min-h-screen">
       {/* Reels Grid */}
       <div className="grid grid-cols-3 gap-0.5">
         {isLoading ? (
-          // Skeleton grid
-          Array.from({ length: 9 }).map((_, i) => (
+          // Skeleton grid - 12 items to fill more of the screen
+          Array.from({ length: 12 }).map((_, i) => (
             <ReelSkeleton key={i} />
           ))
         ) : reels.length === 0 ? (

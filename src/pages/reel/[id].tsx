@@ -398,8 +398,38 @@ export default function ReelPage() {
     return (
       <>
         <div className="hidden md:fixed md:inset-0 md:block md:bg-black/80 md:z-40" />
-        <div className="fixed inset-0 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[430px] md:h-[85vh] md:rounded-[32px] bg-black z-50 flex items-center justify-center">
-          <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
+        <div className="fixed inset-0 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[430px] md:h-[85vh] md:rounded-[32px] bg-gradient-to-b from-gray-800 to-gray-900 z-50 flex flex-col overflow-hidden">
+          {/* Shimmer overlay */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full animate-[shimmer_1.5s_infinite]" />
+          
+          {/* Top bar skeleton */}
+          <div className="p-4 flex items-center justify-between">
+            <div className="w-6 h-6 bg-white/20 rounded" />
+            <div className="w-12 h-4 bg-white/20 rounded" />
+            <div className="w-6 h-6 bg-white/20 rounded" />
+          </div>
+          
+          {/* Center loading spinner */}
+          <div className="flex-1 flex items-center justify-center">
+            <div className="w-10 h-10 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          </div>
+          
+          {/* Bottom content skeleton */}
+          <div className="p-4">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-full bg-white/20" />
+              <div className="h-3 w-24 bg-white/20 rounded" />
+            </div>
+            <div className="h-3 w-3/4 bg-white/15 rounded mb-2" />
+            <div className="h-3 w-1/2 bg-white/10 rounded" />
+          </div>
+          
+          {/* Side actions skeleton */}
+          <div className="absolute right-3 bottom-24 flex flex-col gap-5">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="w-10 h-10 bg-white/10 rounded-full" />
+            ))}
+          </div>
         </div>
       </>
     );
