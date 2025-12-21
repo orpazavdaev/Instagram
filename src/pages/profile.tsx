@@ -95,33 +95,56 @@ function ProfileSkeleton() {
 
 function PostsGridSkeleton() {
   return (
-    <div className="grid grid-cols-3 gap-0.5 animate-pulse">
-      {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(i => (
+    <div className="posts-grid animate-pulse">
+      {Array.from({ length: 15 }).map((_, i) => (
         <div key={i} className="aspect-square bg-gray-200" />
       ))}
     </div>
   );
 }
 
+// Cache profile data between navigations
+let cachedProfile: UserProfile | null = null;
+let cachedHasStory = false;
+let cachedStoryViewed = false;
+
+// Function to clear cache (call after editing profile or creating content)
+export function clearProfileCache() {
+  cachedProfile = null;
+  cachedHasStory = false;
+  cachedStoryViewed = false;
+}
+
 export default function ProfilePage() {
   const router = useRouter();
   const { user } = useAuth();
   const { get } = useApi();
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasStory, setHasStory] = useState(false);
-  const [storyViewed, setStoryViewed] = useState(false);
+  const [profile, setProfile] = useState<UserProfile | null>(cachedProfile);
+  const [isLoading, setIsLoading] = useState(!cachedProfile);
+  const [hasStory, setHasStory] = useState(cachedHasStory);
+  const [storyViewed, setStoryViewed] = useState(cachedStoryViewed);
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<'posts' | 'saved'>('posts');
   const [savedPosts, setSavedPosts] = useState<SavedPost[]>([]);
   const [savedLoading, setSavedLoading] = useState(false);
 
   useEffect(() => {
-    loadProfile();
-  }, [user]);
+    // Only load if no cached data or user changed
+    if (!cachedProfile || cachedProfile.username !== user?.username) {
+      loadProfile();
+    } else {
+      // Use cached data
+      setProfile(cachedProfile);
+      setHasStory(cachedHasStory);
+      setStoryViewed(cachedStoryViewed);
+      setIsLoading(false);
+    }
+  }, [user?.username]);
 
   const loadProfile = async () => {
-    setIsLoading(true);
+    if (!cachedProfile) {
+      setIsLoading(true);
+    }
     if (!user?.username) {
       setIsLoading(false);
       return;
@@ -134,6 +157,7 @@ export default function ProfilePage() {
 
     if (profileData) {
       setProfile(profileData);
+      cachedProfile = profileData;
     }
 
     // Check if current user has stories
@@ -142,6 +166,8 @@ export default function ProfilePage() {
       if (myStories && myStories.stories.length > 0) {
         setHasStory(true);
         setStoryViewed(myStories.allViewed);
+        cachedHasStory = true;
+        cachedStoryViewed = myStories.allViewed;
       }
     }
 
@@ -199,7 +225,7 @@ export default function ProfilePage() {
     : [{ id: '0', name: 'New', isNew: true }];
 
   return (
-    <div className="bg-white pb-20">
+    <div className="bg-white pb-20 min-h-screen">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3">
         <span className="font-semibold text-lg">{profile?.username || user?.username || ''}</span>
