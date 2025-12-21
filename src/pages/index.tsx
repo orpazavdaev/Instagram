@@ -5,6 +5,7 @@ import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Plus, X, Search }
 import Avatar from '@/components/shared/Avatar';
 import { useApi } from '@/hooks/useApi';
 import { useAuth } from '@/context/AuthContext';
+import { useNotifications } from '@/context/NotificationContext';
 
 interface ShareUser {
   id: string;
@@ -121,6 +122,7 @@ function sortStories(storyGroups: StoryGroup[]): StoryGroup[] {
 export default function Home() {
   const { get, post: apiPost } = useApi();
   const { user: currentUser } = useAuth();
+  const { unreadCount } = useNotifications();
   const [posts, setPosts] = useState<Post[]>(cachedPosts || []);
   const [stories, setStories] = useState<StoryGroup[]>(cachedStories ? sortStories(cachedStories) : []);
   const [isLoading, setIsLoading] = useState(!cachedPosts);
@@ -260,12 +262,14 @@ export default function Home() {
     <div className="bg-white">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-        <div className="relative">
-          <button className="p-1">
-            <Heart className="w-6 h-6" />
-          </button>
-          <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
-        </div>
+        <Link href="/activity" className="relative p-1">
+          <Heart className="w-6 h-6" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 rounded-full flex items-center justify-center">
+              <span className="text-white text-xs font-bold">{unreadCount > 99 ? '99+' : unreadCount}</span>
+            </span>
+          )}
+        </Link>
         <div className="flex-1" />
         <Link href="/messages" className="p-1">
           <Send className="w-6 h-6" />

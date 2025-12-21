@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { Home, Search, PlusCircle, Clapperboard } from 'lucide-react';
 import Avatar from '../shared/Avatar';
+import { useAuth } from '@/context/AuthContext';
 
 const navItems = [
   { href: '/', icon: Home, label: 'Home' },
@@ -13,6 +14,7 @@ const navItems = [
 export default function BottomNav() {
   const router = useRouter();
   const pathname = router.pathname;
+  const { user } = useAuth();
 
   return (
     <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
@@ -39,10 +41,13 @@ export default function BottomNav() {
         <Link href="/profile" className="flex items-center justify-center">
           <div 
             className="rounded-full p-[2px]"
-            style={{ background: 'linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)' }}
+            style={{ background: pathname === '/profile' 
+              ? 'linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)' 
+              : 'transparent' 
+            }}
           >
             <div className="bg-neutral-800 rounded-full p-[1px]">
-              <Avatar size="xs" src="https://i.pravatar.cc/150?img=33" />
+              <Avatar size="xs" src={user?.avatar || 'https://i.pravatar.cc/150'} />
             </div>
           </div>
         </Link>
