@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import prisma from '@/lib/prisma';
-import { verifyToken } from '@/lib/auth';
+import { verifyToken, getUserFromRequest } from '@/lib/auth';
 
 export default async function handler(
   req: NextApiRequest,
@@ -14,6 +14,8 @@ export default async function handler(
 
   if (req.method === 'GET') {
     return getReel(req, res, id);
+  } else if (req.method === 'DELETE') {
+    return deleteReel(req, res, id);
   }
 
   return res.status(405).json({ error: 'Method not allowed' });
@@ -69,4 +71,35 @@ async function getReel(req: NextApiRequest, res: NextApiResponse, id: string) {
   }
 }
 
+async function deleteReel(req: NextApiRequest, res: NextApiResponse, id: string) {
+  try {
+    const payload = getUserFromRequest(req);
+    if (!payload) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
 
+    // Check if reel exists and belongs to user
+    const reel = await prisma.reel.findUnique({
+      where: { id },
+      select: { userId: true },
+    });
+
+    if (!reel) {
+      return res.status(404).json({ error: 'Reel not found' });
+    }
+
+    if (reel.userId !== payload.userId) {
+      return res.status(403).json({ error: 'You can only delete your own reels' });
+    }
+
+    // Delete the reel (cascades to likes and comments)
+    await prisma.reel.delete({
+      where: { id },
+    });
+
+    return res.status(200).json({ success: true, message: 'Reel deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting reel:', error);
+    return res.status(500).json({ error: 'Failed to delete reel' });
+  }
+}

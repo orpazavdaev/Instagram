@@ -166,13 +166,13 @@ export default function CreatePage() {
               muted
             />
           ) : (
-            <Image
+          <Image
               src={customUrl || selectedMedia}
-              alt="Selected"
-              fill
-              className="object-contain"
-              onError={() => setError('Invalid image URL')}
-            />
+            alt="Selected"
+            fill
+            className="object-contain"
+            onError={() => setError('Invalid image URL')}
+          />
           )
         ) : (
           <div className="text-center text-gray-500">
@@ -183,7 +183,7 @@ export default function CreatePage() {
               </>
             ) : (
               <>
-                <ImageIcon className="w-16 h-16 mx-auto mb-2" />
+            <ImageIcon className="w-16 h-16 mx-auto mb-2" />
                 <p>Select an image</p>
               </>
             )}
@@ -218,32 +218,32 @@ export default function CreatePage() {
 
       {/* Custom URL Input */}
       {showUrlInput && (
-        <div className="px-4 py-3 bg-gray-900">
-          <input
-            type="text"
+      <div className="px-4 py-3 bg-gray-900">
+        <input
+          type="text"
             placeholder={isVideo ? "Paste video URL here..." : "Paste image URL here..."}
             value={customUrl}
-            onChange={(e) => {
+          onChange={(e) => {
               setCustomUrl(e.target.value);
               setSelectedMedia('');
               setError('');
-            }}
-            className="w-full bg-gray-800 text-white px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
+          }}
+          className="w-full bg-gray-800 text-white px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
       )}
 
       {/* Caption Input (for posts and reels) */}
       {createType !== 'STORY' && (
-        <div className="px-4 py-3 bg-gray-900 border-t border-gray-800">
-          <textarea
-            placeholder="Write a caption..."
-            value={caption}
-            onChange={(e) => setCaption(e.target.value)}
-            rows={3}
-            className="w-full bg-gray-800 text-white px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-          />
-        </div>
+      <div className="px-4 py-3 bg-gray-900 border-t border-gray-800">
+        <textarea
+          placeholder="Write a caption..."
+          value={caption}
+          onChange={(e) => setCaption(e.target.value)}
+          rows={3}
+          className="w-full bg-gray-800 text-white px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+        />
+      </div>
       )}
 
       {error && (
@@ -292,64 +292,64 @@ export default function CreatePage() {
                 key={index} 
                 className={`aspect-square relative ${selectedMedia === image ? 'ring-2 ring-blue-500 ring-inset' : ''}`}
                 onClick={() => handleSelectMedia(image)}
-              >
-                <Image
-                  src={image}
+            >
+              <Image
+                src={image}
                   alt={`Media ${index + 1}`}
-                  fill
-                  className="object-cover"
-                />
-              </button>
+                fill
+                className="object-cover"
+              />
+            </button>
             ))
           )
         )}
-      </div>
+        </div>
 
-      {/* Floating Bottom Tabs */}
+        {/* Floating Bottom Tabs */}
       <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
-        <div className="bg-neutral-700/90 backdrop-blur-sm rounded-full p-1 flex gap-1">
-          <button 
+          <div className="bg-neutral-700/90 backdrop-blur-sm rounded-full p-1 flex gap-1">
+            <button 
             onClick={() => {
               setCreateType('POST');
               setSelectedMedia('');
               setCustomUrl('');
             }}
-            className={`px-5 py-2 rounded-full text-xs font-semibold tracking-wide transition-colors ${
-              createType === 'POST' 
-                ? 'bg-neutral-500 text-white' 
-                : 'text-neutral-300 hover:text-white'
-            }`}
-          >
-            POST
-          </button>
-          <button 
+              className={`px-5 py-2 rounded-full text-xs font-semibold tracking-wide transition-colors ${
+                createType === 'POST' 
+                  ? 'bg-neutral-500 text-white' 
+                  : 'text-neutral-300 hover:text-white'
+              }`}
+            >
+              POST
+            </button>
+            <button 
             onClick={() => {
               setCreateType('STORY');
               setSelectedMedia('');
               setCustomUrl('');
             }}
-            className={`px-5 py-2 rounded-full text-xs font-semibold tracking-wide transition-colors ${
-              createType === 'STORY' 
-                ? 'bg-neutral-500 text-white' 
-                : 'text-neutral-300 hover:text-white'
-            }`}
-          >
-            STORY
-          </button>
-          <button 
+              className={`px-5 py-2 rounded-full text-xs font-semibold tracking-wide transition-colors ${
+                createType === 'STORY' 
+                  ? 'bg-neutral-500 text-white' 
+                  : 'text-neutral-300 hover:text-white'
+              }`}
+            >
+              STORY
+            </button>
+            <button 
             onClick={() => {
               setCreateType('REEL');
               setSelectedMedia('');
               setCustomUrl('');
             }}
-            className={`px-5 py-2 rounded-full text-xs font-semibold tracking-wide transition-colors ${
-              createType === 'REEL' 
-                ? 'bg-neutral-500 text-white' 
-                : 'text-neutral-300 hover:text-white'
-            }`}
-          >
-            REEL
-          </button>
+              className={`px-5 py-2 rounded-full text-xs font-semibold tracking-wide transition-colors ${
+                createType === 'REEL' 
+                  ? 'bg-neutral-500 text-white' 
+                  : 'text-neutral-300 hover:text-white'
+              }`}
+            >
+              REEL
+            </button>
         </div>
       </div>
     </div>

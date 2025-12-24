@@ -3,16 +3,22 @@ import prisma from '@/lib/prisma';
 import { getUserFromRequest } from '@/lib/auth';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
   const { id } = req.query;
 
   if (typeof id !== 'string') {
     return res.status(400).json({ error: 'Invalid post ID' });
   }
 
+  if (req.method === 'GET') {
+    return getPost(req, res, id);
+  } else if (req.method === 'DELETE') {
+    return deletePost(req, res, id);
+  }
+
+  return res.status(405).json({ error: 'Method not allowed' });
+}
+
+async function getPost(req: NextApiRequest, res: NextApiResponse, id: string) {
   try {
     const payload = getUserFromRequest(req);
     const currentUserId = payload?.userId || '';
@@ -60,3 +66,35 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 }
 
+async function deletePost(req: NextApiRequest, res: NextApiResponse, id: string) {
+  try {
+    const payload = getUserFromRequest(req);
+    if (!payload) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    // Check if post exists and belongs to user
+    const post = await prisma.post.findUnique({
+      where: { id },
+      select: { userId: true },
+    });
+
+    if (!post) {
+      return res.status(404).json({ error: 'Post not found' });
+    }
+
+    if (post.userId !== payload.userId) {
+      return res.status(403).json({ error: 'You can only delete your own posts' });
+    }
+
+    // Delete the post (cascades to likes and comments)
+    await prisma.post.delete({
+      where: { id },
+    });
+
+    return res.status(200).json({ success: true, message: 'Post deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting post:', error);
+    return res.status(500).json({ error: 'Failed to delete post' });
+  }
+}

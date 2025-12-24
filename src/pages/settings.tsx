@@ -1,5 +1,6 @@
 import { 
   ChevronRight, 
+  ChevronLeft,
   User,
   Bell,
   Lock,
@@ -10,6 +11,7 @@ import {
   LogOut
 } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 import { useAuth } from '@/context/AuthContext';
 
 const accountCenterItems = [
@@ -36,15 +38,17 @@ const howOthersInteractItems = [
 
 export default function SettingsPage() {
   const { logout } = useAuth();
+  const router = useRouter();
 
   return (
-    <div className="bg-white">
-
-      {/* Settings and Privacy Link */}
-      <Link href="#" className="flex items-center justify-between px-4 py-4 border-b border-gray-100">
-        <span className="text-base">Settings And Privacy</span>
-        <ChevronRight className="w-5 h-5 text-gray-400" />
-      </Link>
+    <div className="bg-white min-h-screen">
+      {/* Header with back button */}
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100">
+        <button onClick={() => router.push('/profile')} className="p-1 -ml-1">
+          <ChevronLeft className="w-6 h-6" />
+        </button>
+        <span className="text-lg font-semibold">Settings And Privacy</span>
+      </div>
 
       {/* Meta Accounts Center */}
       <div className="mx-4 mt-4 p-4 bg-gray-50 rounded-xl">

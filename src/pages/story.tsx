@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
 import Link from 'next/link';
-import { X, MoreHorizontal, Send, Heart, Volume2, VolumeX, Pause, Search } from 'lucide-react';
+import { X, MoreHorizontal, Send, Heart, Volume2, VolumeX, Pause, Search, Trash2 } from 'lucide-react';
 import Avatar from '@/components/shared/Avatar';
 import { useApi } from '@/hooks/useApi';
 import { useAuth } from '@/context/AuthContext';
@@ -52,7 +52,7 @@ function isVideoUrl(url: string): boolean {
 export default function StoryPage() {
   const router = useRouter();
   const { userId } = router.query;
-  const { get, post } = useApi();
+  const { get, post, del } = useApi();
   const { user: currentUser } = useAuth();
   
   // Story data
@@ -76,6 +76,11 @@ export default function StoryPage() {
   
   // Mode: false = unviewed stories mode, true = viewed stories mode
   const [isViewedMode, setIsViewedMode] = useState(false);
+  
+  // Delete confirmation state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
   
   // Refs for callbacks
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -186,6 +191,40 @@ export default function StoryPage() {
     u.username.toLowerCase().includes(shareSearch.toLowerCase()) ||
     u.fullName?.toLowerCase().includes(shareSearch.toLowerCase())
   );
+
+  // Delete story
+  const handleDeleteStory = async () => {
+    const currentGroup = storyGroups[currentGroupIndex];
+    const currentStory = currentGroup?.stories[currentStoryIndex];
+    if (!currentStory) return;
+    
+    setIsDeleting(true);
+    const result = await del(`/api/stories/${currentStory.id}`);
+    setIsDeleting(false);
+    
+    if (result) {
+      // Remove story from current group
+      const updatedStories = currentGroup.stories.filter(s => s.id !== currentStory.id);
+      
+      if (updatedStories.length === 0) {
+        // No more stories in this group, go back
+        router.push('/');
+      } else {
+        // Update stories and move to previous or stay at current
+        const newGroups = [...storyGroups];
+        newGroups[currentGroupIndex] = { ...currentGroup, stories: updatedStories };
+        setStoryGroups(newGroups);
+        
+        // Move to previous story if we deleted the last one
+        if (currentStoryIndex >= updatedStories.length) {
+          setCurrentStoryIndex(updatedStories.length - 1);
+        }
+        
+        setShowDeleteConfirm(false);
+        setShowMenu(false);
+      }
+    }
+  };
 
   // Timer control
   const clearTimer = useCallback(() => {
@@ -572,21 +611,54 @@ export default function StoryPage() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="fixed inset-0 bg-black z-[100] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
-      </div>
+      <>
+        <div className="hidden md:fixed md:inset-0 md:block md:bg-black/80 md:z-[99]" />
+        <div className="fixed inset-0 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[430px] md:h-[85vh] md:rounded-[32px] bg-gradient-to-b from-gray-800 to-gray-900 z-[100] flex flex-col overflow-hidden">
+          {/* Shimmer overlay */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full animate-[shimmer_1.5s_infinite]" />
+          
+          {/* Progress bars skeleton */}
+          <div className="flex gap-0.5 p-2 pt-3">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="flex-1 h-0.5 bg-white/20 rounded-full" />
+            ))}
+          </div>
+          
+          {/* Header skeleton */}
+          <div className="flex items-center gap-3 px-4 py-3">
+            <div className="w-8 h-8 rounded-full bg-white/20" />
+            <div className="flex-1">
+              <div className="h-3 w-20 bg-white/20 rounded mb-1" />
+              <div className="h-2 w-12 bg-white/10 rounded" />
+            </div>
+          </div>
+          
+          {/* Center loading spinner */}
+          <div className="flex-1 flex items-center justify-center">
+            <div className="w-10 h-10 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          </div>
+          
+          {/* Bottom bar skeleton */}
+          <div className="p-4">
+            <div className="h-10 bg-white/10 rounded-full" />
+          </div>
+        </div>
+      </>
     );
   }
 
   // No stories
   if (storyGroups.length === 0) {
     return (
-      <div className="fixed inset-0 bg-black z-[100] flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-white mb-4">No stories available</p>
-          <button onClick={() => router.push('/')} className="text-blue-400">Go back</button>
+      <>
+        <div className="hidden md:fixed md:inset-0 md:block md:bg-black/80 md:z-[99]" />
+        <div className="fixed inset-0 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[430px] md:h-[85vh] md:rounded-[32px] bg-black z-[100] flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-white mb-4">No stories available</p>
+            <button onClick={() => router.push('/')} className="text-blue-400">Go back</button>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
@@ -601,17 +673,22 @@ export default function StoryPage() {
   const { user } = currentGroup;
   const time = getTimeAgo(currentStory.createdAt);
   const isVideo = isVideoUrl(currentStory.image);
+  const isOwnStory = currentUser?.id === user.id;
 
   return (
-    <div
-      className="fixed inset-0 bg-black z-[100] flex flex-col select-none"
-      onClick={handleScreenClick}
-      onMouseDown={handleMouseDown}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
-      onTouchStart={(e) => { handleTouchStart(e); pauseProgress(); }}
-      onTouchEnd={(e) => { handleTouchEnd(e); resumeProgress(); }}
-    >
+    <>
+      {/* Desktop background overlay */}
+      <div className="hidden md:fixed md:inset-0 md:block md:bg-black/80 md:z-[99]" onClick={() => router.push('/')} />
+      
+      <div
+        className="fixed inset-0 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[430px] md:h-[85vh] md:rounded-[32px] md:overflow-hidden bg-black z-[100] flex flex-col select-none"
+        onClick={handleScreenClick}
+        onMouseDown={handleMouseDown}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onTouchStart={(e) => { handleTouchStart(e); pauseProgress(); }}
+        onTouchEnd={(e) => { handleTouchEnd(e); resumeProgress(); }}
+      >
       {/* Top gradient for visibility on bright images */}
       <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-black/60 via-black/30 to-transparent z-10 pointer-events-none" />
 
@@ -675,9 +752,35 @@ export default function StoryPage() {
               {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
             </button>
           )}
-          <button onClick={(e) => e.stopPropagation()} className="p-2 text-white drop-shadow-md">
-            <MoreHorizontal className="w-5 h-5" />
-          </button>
+          {isOwnStory && (
+            <div className="relative">
+              <button 
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  setShowMenu(!showMenu);
+                }} 
+                className="p-2 text-white drop-shadow-md"
+              >
+                <MoreHorizontal className="w-5 h-5" />
+              </button>
+              
+              {showMenu && (
+                <div className="absolute right-0 top-10 bg-white rounded-lg shadow-lg min-w-[150px] z-30">
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowMenu(false);
+                      setShowDeleteConfirm(true);
+                    }}
+                    className="w-full flex items-center gap-2 px-4 py-3 text-red-500"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>Delete Story</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
           <button onClick={(e) => { e.stopPropagation(); router.push('/'); }} className="p-2 text-white drop-shadow-md">
             <X className="w-5 h-5" />
           </button>
@@ -803,6 +906,41 @@ export default function StoryPage() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div 
+          className="fixed inset-0 bg-black/70 z-[110] flex items-center justify-center p-4"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="bg-white rounded-xl max-w-sm w-full overflow-hidden">
+            <div className="p-6 text-center">
+              <Trash2 className="w-12 h-12 text-red-500 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Delete Story?</h3>
+              <p className="text-gray-500 text-sm">
+                This action cannot be undone. The story will be permanently deleted.
+              </p>
+            </div>
+            <div className="border-t flex">
+              <button 
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 py-3 font-semibold text-gray-700 hover:bg-gray-50"
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleDeleteStory}
+                className="flex-1 py-3 font-semibold text-red-500 hover:bg-red-50 border-l"
+                disabled={isDeleting}
+              >
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
+    </>
   );
 }

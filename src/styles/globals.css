@@ -139,6 +139,26 @@ body {
   animation: slideUp 0.3s ease-out forwards;
 }
 
+/* Shrink animation for notification toast progress bar */
+@keyframes shrink {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
 
+.animate-shrink {
+  animation: shrink linear forwards;
+}
 
-
+/* Shimmer animation for skeleton loaders */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}

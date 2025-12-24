@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Plus, X, Search } from 'lucide-react';
+import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Plus, X, Search, Trash2 } from 'lucide-react';
 import Avatar from '@/components/shared/Avatar';
 import { useApi } from '@/hooks/useApi';
 import { useAuth } from '@/context/AuthContext';
+import { useNotifications } from '@/context/NotificationContext';
 
 interface ShareUser {
   id: string;
@@ -26,6 +27,7 @@ interface Post {
   likesCount: number;
   commentsCount: number;
   likedByUser: string[];
+  isSaved?: boolean;
 }
 
 interface Story {
@@ -119,8 +121,9 @@ function sortStories(storyGroups: StoryGroup[]): StoryGroup[] {
 }
 
 export default function Home() {
-  const { get, post: apiPost } = useApi();
+  const { get, post: apiPost, del } = useApi();
   const { user: currentUser } = useAuth();
+  const { unreadCount } = useNotifications();
   const [posts, setPosts] = useState<Post[]>(cachedPosts || []);
   const [stories, setStories] = useState<StoryGroup[]>(cachedStories ? sortStories(cachedStories) : []);
   const [isLoading, setIsLoading] = useState(!cachedPosts);
@@ -132,6 +135,27 @@ export default function Home() {
   const [shareUsers, setShareUsers] = useState<ShareUser[]>([]);
   const [shareSearch, setShareSearch] = useState('');
   const [sendingTo, setSendingTo] = useState<string | null>(null);
+  
+  // Post menu state
+  const [openMenuPostId, setOpenMenuPostId] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletePostId, setDeletePostId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpenMenuPostId(null);
+      }
+    };
+    
+    if (openMenuPostId) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [openMenuPostId]);
 
   const refreshFromCache = useCallback(() => {
     if (cachedStories) {
@@ -207,6 +231,51 @@ export default function Home() {
     await apiPost<{ liked: boolean }>(`/api/posts/${postId}/like`, {});
   };
 
+  // Delete post
+  const handleDeletePost = async () => {
+    if (!deletePostId) return;
+    
+    setIsDeleting(true);
+    const result = await del(`/api/posts/${deletePostId}`);
+    
+    if (result !== null) {
+      // Remove from state and cache
+      setPosts(prev => {
+        const updated = prev.filter(p => p.id !== deletePostId);
+        cachedPosts = updated;
+        return updated;
+      });
+    }
+    
+    setIsDeleting(false);
+    setShowDeleteConfirm(false);
+    setDeletePostId(null);
+    setOpenMenuPostId(null);
+  };
+
+  // Save/unsave post
+  const handleSave = async (postId: string) => {
+    if (!currentUserId) return;
+    
+    // Optimistic update
+    setPosts(prevPosts => {
+      const updatedPosts = prevPosts.map(post => {
+        if (post.id === postId) {
+          return {
+            ...post,
+            isSaved: !post.isSaved,
+          };
+        }
+        return post;
+      });
+      cachedPosts = updatedPosts;
+      return updatedPosts;
+    });
+
+    // Send to server
+    await apiPost<{ saved: boolean }>(`/api/posts/${postId}/save`, {});
+  };
+
   // Open share modal
   const openShareModal = async (post: Post) => {
     setSharePost(post);
@@ -260,12 +329,14 @@ export default function Home() {
     <div className="bg-white">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-        <div className="relative">
-          <button className="p-1">
-            <Heart className="w-6 h-6" />
-          </button>
-          <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
-        </div>
+        <Link href="/activity" className="relative p-1">
+          <Heart className="w-6 h-6" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 rounded-full flex items-center justify-center">
+              <span className="text-white text-xs font-bold">{unreadCount > 99 ? '99+' : unreadCount}</span>
+            </span>
+          )}
+        </Link>
         <div className="flex-1" />
         <Link href="/messages" className="p-1">
           <Send className="w-6 h-6" />
@@ -377,9 +448,41 @@ export default function Home() {
                       {post.user.username}
                     </Link>
                   </div>
-                  <button className="p-1">
-                    <MoreHorizontal className="w-5 h-5 text-gray-700" />
-                  </button>
+                  <div className="relative" ref={openMenuPostId === post.id ? menuRef : null}>
+                    <button 
+                      className="p-1"
+                      onClick={() => setOpenMenuPostId(openMenuPostId === post.id ? null : post.id)}
+                    >
+                      <MoreHorizontal className="w-5 h-5 text-gray-700" />
+                    </button>
+                    
+                    {/* Post Menu */}
+                    {openMenuPostId === post.id && (
+                      <div className="absolute right-0 top-8 bg-white rounded-lg shadow-lg border z-20 min-w-[150px]">
+                        {post.user.id === currentUserId && (
+                          <button 
+                            onClick={() => {
+                              setDeletePostId(post.id);
+                              setShowDeleteConfirm(true);
+                              setOpenMenuPostId(null);
+                            }}
+                            className="w-full flex items-center gap-2 px-4 py-3 text-red-500 hover:bg-gray-50"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            <span>Delete</span>
+                          </button>
+                        )}
+                        {post.user.id !== currentUserId && (
+                          <button 
+                            onClick={() => setOpenMenuPostId(null)}
+                            className="w-full flex items-center gap-2 px-4 py-3 text-gray-700 hover:bg-gray-50"
+                          >
+                            <span>Cancel</span>
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Post Image */}
@@ -408,8 +511,8 @@ export default function Home() {
                         <Send className="w-6 h-6" />
                       </button>
                     </div>
-                    <button>
-                      <Bookmark className="w-6 h-6" />
+                    <button onClick={() => handleSave(post.id)}>
+                      <Bookmark className={`w-6 h-6 ${post.isSaved ? 'fill-black' : ''}`} />
                     </button>
                   </div>
 
@@ -498,6 +601,37 @@ export default function Home() {
                   </div>
                 ))
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-[300px] overflow-hidden">
+            <div className="p-6 text-center">
+              <h3 className="font-semibold text-lg mb-2">Delete Post?</h3>
+              <p className="text-gray-500 text-sm">This action cannot be undone.</p>
+            </div>
+            <div className="border-t flex">
+              <button 
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setDeletePostId(null);
+                }}
+                className="flex-1 py-3 font-semibold text-gray-700 hover:bg-gray-50"
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleDeletePost}
+                className="flex-1 py-3 font-semibold text-red-500 hover:bg-red-50 border-l"
+                disabled={isDeleting}
+              >
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </button>
             </div>
           </div>
         </div>

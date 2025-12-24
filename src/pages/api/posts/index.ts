@@ -56,6 +56,10 @@ async function getPosts(req: NextApiRequest, res: NextApiResponse) {
             userId: true,
           },
         },
+        savedBy: currentUserId ? {
+          where: { userId: currentUserId },
+          select: { userId: true },
+        } : false,
       },
     });
 
@@ -68,6 +72,7 @@ async function getPosts(req: NextApiRequest, res: NextApiResponse) {
       likesCount: post._count.likes,
       commentsCount: post._count.comments,
       likedByUser: post.likes.map((like) => like.userId),
+      isSaved: currentUserId ? (post.savedBy && post.savedBy.length > 0) : false,
     }));
 
     logger.info('Posts fetched', { metadata: { count: postsWithCounts.length } });

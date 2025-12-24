@@ -89,22 +89,17 @@ export default function UserProfilePage() {
   const handleFollow = async () => {
     if (!profile) return;
     
-    console.log('handleFollow called for:', profile.username);
-    console.log('Current isFollowing:', isFollowing);
-    
     // Optimistic update
     const wasFollowing = isFollowing;
     setIsFollowing(!isFollowing);
     setFollowersCount(prev => isFollowing ? prev - 1 : prev + 1);
 
     const result = await apiPost<{ following: boolean }>(`/api/users/${profile.username}/follow`, {});
-    console.log('Follow API result:', result);
     
     if (result) {
       setIsFollowing(result.following);
     } else {
       // Revert on error
-      console.log('Follow API failed, reverting');
       setIsFollowing(wasFollowing);
       setFollowersCount(prev => wasFollowing ? prev : prev - 1);
     }
@@ -200,7 +195,7 @@ export default function UserProfilePage() {
       {isLoading ? (
         <PostsGridSkeleton />
       ) : profile?.posts && profile.posts.length > 0 ? (
-        <PostsGrid posts={profile.posts} />
+        <PostsGrid posts={profile.posts} username={profile.username} />
       ) : (
         <div className="text-center py-12 text-gray-400">
           <Grid3X3 className="w-12 h-12 mx-auto mb-2" />

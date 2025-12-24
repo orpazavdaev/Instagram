@@ -8,15 +8,16 @@ interface Post {
 
 interface PostsGridProps {
   posts: Post[];
+  username?: string;
 }
 
-export default function PostsGrid({ posts }: PostsGridProps) {
+export default function PostsGrid({ posts, username }: PostsGridProps) {
   return (
     <div className="posts-grid">
       {posts.map((post) => (
         <Link
           key={post.id}
-          href={`/post/${post.id}`}
+          href={username ? `/post/${post.id}?username=${username}` : `/post/${post.id}`}
           className="relative aspect-square"
         >
           <Image

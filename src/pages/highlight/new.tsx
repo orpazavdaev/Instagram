@@ -14,6 +14,7 @@ interface Story {
 interface Highlight {
   id: string;
   name: string;
+  image: string | null;
   storiesCount: number;
 }
 
@@ -75,19 +76,28 @@ export default function NewHighlightPage() {
   const handleAddToExisting = async (highlightId: string) => {
     setIsSaving(true);
     
-    // Get current stories in highlight
-    const highlight = await get<{ stories: Story[] }>(`/api/highlights/${highlightId}`);
-    if (highlight) {
-      const currentIds = highlight.stories.map(s => s.id);
-      const newIds = [...currentIds, ...Array.from(selectedStories)];
-      
-      await put(`/api/highlights/${highlightId}`, {
-        storyIds: newIds,
-      });
+    try {
+      // Get current stories in highlight
+      const highlight = await get<{ stories: Story[] }>(`/api/highlights/${highlightId}`);
+      if (highlight && highlight.stories) {
+        const currentIds = highlight.stories.map(s => s.id);
+        // Combine and deduplicate story IDs
+        const newIds = [...new Set([...currentIds, ...Array.from(selectedStories)])];
+        
+        const result = await put(`/api/highlights/${highlightId}`, {
+          storyIds: newIds,
+        });
+        
+        if (result) {
+          router.push('/profile');
+          return;
+        }
+      }
+    } catch (error) {
+      console.error('Error adding to highlight:', error);
     }
     
     setIsSaving(false);
-    router.push('/profile');
   };
 
   const handleCreate = async () => {
@@ -248,8 +258,17 @@ export default function NewHighlightPage() {
                 disabled={isSaving}
                 className="w-full flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 transition"
               >
-                <div className="w-12 h-12 rounded-full bg-gray-200 overflow-hidden">
-                  {/* Could show highlight cover here */}
+                <div className="w-12 h-12 rounded-full bg-gray-200 overflow-hidden relative">
+                  {highlight.image ? (
+                    <Image
+                      src={highlight.image}
+                      alt={highlight.name}
+                      fill
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-purple-400 to-pink-400" />
+                  )}
                 </div>
                 <div className="flex-1 text-left">
                   <p className="font-semibold">{highlight.name}</p>
@@ -263,4 +282,5 @@ export default function NewHighlightPage() {
     </div>
   );
 }
+
 

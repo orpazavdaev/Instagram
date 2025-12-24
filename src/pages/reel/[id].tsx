@@ -13,7 +13,8 @@ import {
   Volume2,
   VolumeX,
   X,
-  Search
+  Search,
+  Trash2
 } from 'lucide-react';
 import Avatar from '@/components/shared/Avatar';
 import { useApi } from '@/hooks/useApi';
@@ -63,7 +64,9 @@ function ReelItem({
   onToggleMute,
   onLike,
   onOpenComments,
-  onShare
+  onShare,
+  onDelete,
+  currentUserId
 }: { 
   reel: Reel; 
   isActive: boolean; 
@@ -72,11 +75,16 @@ function ReelItem({
   onLike: (reelId: string) => void;
   onOpenComments: (reelId: string) => void;
   onShare: (reel: Reel) => void;
+  onDelete: (reelId: string) => void;
+  currentUserId?: string;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLiked, setIsLiked] = useState(reel.isLiked);
   const [likesCount, setLikesCount] = useState(reel.likesCount);
+  const [showMenu, setShowMenu] = useState(false);
+
+  const isOwner = currentUserId === reel.user.id;
 
   useEffect(() => {
     if (videoRef.current) {
@@ -162,9 +170,31 @@ function ReelItem({
           <Bookmark className="w-7 h-7 text-white" />
         </button>
         
-        <button className="flex flex-col items-center gap-1">
-          <MoreHorizontal className="w-7 h-7 text-white" />
-        </button>
+        {isOwner && (
+          <div className="relative">
+            <button 
+              onClick={() => setShowMenu(!showMenu)} 
+              className="flex flex-col items-center gap-1"
+            >
+              <MoreHorizontal className="w-7 h-7 text-white" />
+            </button>
+            
+            {showMenu && (
+              <div className="absolute right-0 bottom-10 bg-white rounded-lg shadow-lg min-w-[150px] z-20">
+                <button 
+                  onClick={() => {
+                    setShowMenu(false);
+                    onDelete(reel.id);
+                  }}
+                  className="w-full flex items-center gap-2 px-4 py-3 text-red-500"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Delete</span>
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Bottom info */}
@@ -191,7 +221,7 @@ function ReelItem({
 export default function ReelPage() {
   const router = useRouter();
   const { id } = router.query;
-  const { get, post } = useApi();
+  const { get, post, del } = useApi();
   const { user } = useAuth();
   
   const [reels, setReels] = useState<Reel[]>([]);
@@ -209,6 +239,11 @@ export default function ReelPage() {
   const [shareSearch, setShareSearch] = useState('');
   const [sendingTo, setSendingTo] = useState<string | null>(null);
   const [shareReel, setShareReel] = useState<Reel | null>(null);
+  
+  // Delete confirmation state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteReelId, setDeleteReelId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -319,6 +354,33 @@ export default function ReelPage() {
     setShareReel(null);
   };
 
+  // Open delete confirmation
+  const handleDeleteRequest = (reelId: string) => {
+    setDeleteReelId(reelId);
+    setShowDeleteConfirm(true);
+  };
+
+  // Delete reel
+  const handleDelete = async () => {
+    if (!deleteReelId) return;
+    
+    setIsDeleting(true);
+    const result = await del(`/api/reels/${deleteReelId}`);
+    setIsDeleting(false);
+    
+    if (result) {
+      // Remove from list and go back if no more reels
+      const newReels = reels.filter(r => r.id !== deleteReelId);
+      if (newReels.length === 0) {
+        router.push('/reels');
+      } else {
+        setReels(newReels);
+        setShowDeleteConfirm(false);
+        setDeleteReelId(null);
+      }
+    }
+  };
+
   const filteredShareUsers = shareUsers.filter(u =>
     u.username.toLowerCase().includes(shareSearch.toLowerCase()) ||
     u.fullName?.toLowerCase().includes(shareSearch.toLowerCase())
@@ -334,28 +396,68 @@ export default function ReelPage() {
 
   if (isLoading) {
     return (
-      <div className="fixed inset-0 bg-black z-50 flex items-center justify-center">
-        <div className="text-white">Loading...</div>
-      </div>
+      <>
+        <div className="hidden md:fixed md:inset-0 md:block md:bg-black/80 md:z-40" />
+        <div className="fixed inset-0 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[430px] md:h-[85vh] md:rounded-[32px] bg-gradient-to-b from-gray-800 to-gray-900 z-50 flex flex-col overflow-hidden">
+          {/* Shimmer overlay */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full animate-[shimmer_1.5s_infinite]" />
+          
+          {/* Top bar skeleton */}
+          <div className="p-4 flex items-center justify-between">
+            <div className="w-6 h-6 bg-white/20 rounded" />
+            <div className="w-12 h-4 bg-white/20 rounded" />
+            <div className="w-6 h-6 bg-white/20 rounded" />
+          </div>
+          
+          {/* Center loading spinner */}
+          <div className="flex-1 flex items-center justify-center">
+            <div className="w-10 h-10 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          </div>
+          
+          {/* Bottom content skeleton */}
+          <div className="p-4">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-full bg-white/20" />
+              <div className="h-3 w-24 bg-white/20 rounded" />
+            </div>
+            <div className="h-3 w-3/4 bg-white/15 rounded mb-2" />
+            <div className="h-3 w-1/2 bg-white/10 rounded" />
+          </div>
+          
+          {/* Side actions skeleton */}
+          <div className="absolute right-3 bottom-24 flex flex-col gap-5">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="w-10 h-10 bg-white/10 rounded-full" />
+            ))}
+          </div>
+        </div>
+      </>
     );
   }
 
   if (reels.length === 0) {
     return (
-      <div className="fixed inset-0 bg-black z-50 flex items-center justify-center">
-        <div className="text-center text-white">
-          <p className="mb-4">No reels found</p>
-          <button onClick={() => router.back()} className="text-blue-400">
-            Go back
-          </button>
+      <>
+        <div className="hidden md:fixed md:inset-0 md:block md:bg-black/80 md:z-40" />
+        <div className="fixed inset-0 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[430px] md:h-[85vh] md:rounded-[32px] bg-black z-50 flex items-center justify-center">
+          <div className="text-center text-white">
+            <p className="mb-4">No reels found</p>
+            <button onClick={() => router.back()} className="text-blue-400">
+              Go back
+            </button>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="fixed inset-0 bg-black z-50">
-      {/* Top bar */}
+    <>
+      {/* Desktop background overlay */}
+      <div className="hidden md:fixed md:inset-0 md:block md:bg-black/80 md:z-40" onClick={() => router.push('/reels')} />
+      
+      <div className="fixed inset-0 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[430px] md:h-[85vh] md:rounded-[32px] md:overflow-hidden bg-black z-50">
+        {/* Top bar */}
       <div className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between z-20 bg-gradient-to-b from-black/50 to-transparent">
         <button onClick={() => router.push('/reels')} className="text-white">
           <ArrowLeft className="w-6 h-6" />
@@ -382,6 +484,8 @@ export default function ReelPage() {
             onLike={handleLike}
             onOpenComments={handleOpenComments}
             onShare={openShareModal}
+            onDelete={handleDeleteRequest}
+            currentUserId={user?.id}
           />
         ))}
       </div>
@@ -527,6 +631,41 @@ export default function ReelPage() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-sm w-full overflow-hidden">
+            <div className="p-6 text-center">
+              <Trash2 className="w-12 h-12 text-red-500 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Delete Reel?</h3>
+              <p className="text-gray-500 text-sm">
+                This action cannot be undone. The reel will be permanently deleted.
+              </p>
+            </div>
+            <div className="border-t flex">
+              <button 
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setDeleteReelId(null);
+                }}
+                className="flex-1 py-3 font-semibold text-gray-700 hover:bg-gray-50"
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleDelete}
+                className="flex-1 py-3 font-semibold text-red-500 hover:bg-red-50 border-l"
+                disabled={isDeleting}
+              >
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
+    </>
   );
 }
