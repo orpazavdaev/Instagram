@@ -298,9 +298,11 @@ export default function ProfilePage() {
             </div>
 
             {/* Story Highlights */}
-            <div className="flex gap-4 overflow-x-auto hide-scrollbar -mx-4 px-4 pb-4">
+            <div className="flex gap-4 overflow-x-auto md:overflow-x-scroll hide-scrollbar md:scrollbar-thin -mx-4 px-4 pb-4">
               {highlights.map((highlight) => (
-                <StoryHighlight key={highlight.id} {...highlight} />
+                <div key={highlight.id} className="flex-shrink-0">
+                  <StoryHighlight {...highlight} />
+                </div>
               ))}
             </div>
           </>
